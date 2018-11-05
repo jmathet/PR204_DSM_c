@@ -43,7 +43,7 @@ int main(int argc, char *argv[])
      FILE * fp;
      char * line = NULL;
      size_t len = 0;
-     ssize_t read;
+     ssize_t line_read;
      fp = fopen(argv[1], "r");
 
      if (fp == NULL){
@@ -52,7 +52,7 @@ int main(int argc, char *argv[])
       }
 
       int j = 0;
-      while ((read = getline(&line, &len, fp)) != -1) {
+      while ((line_read = getline(&line, &len, fp)) != -1) {
         machines[j] = line;
         printf("%s",machines[j] );
         i++;
@@ -88,10 +88,13 @@ int main(int argc, char *argv[])
       	if(pid == -1) ERROR_EXIT("fork");
 
       	if (pid == 0) { /* fils */
-
       	   /* redirection stdout */
+           int out = dup(STDOUT_FILENO);
            close(STDOUT_FILENO);
-           dup(pipefd_stdout[1]);
+           int test_fils_stdout = dup(pipefd_stdout[1]);
+           printf("N° du descriptteur : %d\n", test_fils_stdout);
+           fflush(stdout);
+
            close(pipefd_stdout[0]);
 
       	   /* redirection stderr */
@@ -108,10 +111,12 @@ int main(int argc, char *argv[])
       	   /* fermeture des extremites des tubes non utiles */
            close(pipefd_stderr[1]);
            close(pipefd_stdout[1]);
+           char buffer[100];
+           read(pipefd_stdout[0], buffer, 100);
+           printf("lu : %s\n", buffer);
       	   num_procs_creat++;
       	}
      }
-
 
      for(i = 0; i < num_procs ; i++){
 
