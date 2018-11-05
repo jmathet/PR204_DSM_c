@@ -65,7 +65,19 @@ int main(int argc, char *argv[])
 
 
      /* creation de la socket d'ecoute */
-     /* + ecoute effective */
+     // INITS
+     int sock;
+     struct sockaddr_in serv_addr;
+     int enable=1; // used for setsockopt
+
+     // SET UP
+     sock = do_socket();
+     if(-1 == setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)))
+       perror("setsockopt");
+     init_serv_addr(&serv_addr, 0);
+     do_bind(sock, serv_addr);
+     do_listen(sock, NB_MAX_PROC);
+     /* + ecoute effective (=listen)*/
 
      struct pollfd poll_set[6];
      int nfds = 0;
