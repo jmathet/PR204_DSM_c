@@ -7,7 +7,7 @@
 #include <errno.h>
 #include <string.h>
 #include <fcntl.h>
-#include <unistd.h>
+#include <poll.h>
 
 
 /* autres includes (eventuellement) */

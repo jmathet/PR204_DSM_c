@@ -67,6 +67,10 @@ int main(int argc, char *argv[])
      /* creation de la socket d'ecoute */
      /* + ecoute effective */
 
+     struct pollfd poll_set[6];
+     int nfds = 0;
+     memset(poll_set, 0, sizeof(struct pollfd));
+
      /* creation des fils */
      for(i = 0; i < num_procs ; i++) {
 
@@ -85,11 +89,12 @@ int main(int argc, char *argv[])
         }
 
       	pid = fork();
+        nfds++;
       	if(pid == -1) ERROR_EXIT("fork");
 
       	if (pid == 0) { /* fils */
       	   /* redirection stdout */
-           int out = dup(STDOUT_FILENO);
+           dup(STDOUT_FILENO);
            close(STDOUT_FILENO);
            int test_fils_stdout = dup(pipefd_stdout[1]);
            printf("N° du descriptteur : %d\n", test_fils_stdout);
@@ -108,12 +113,18 @@ int main(int argc, char *argv[])
       	   /* execvp("ssh",newargv); */
 
       	} else  if(pid > 0) { /* pere */
+          poll_set[i].fd =pipefd_stdout[0];
+          poll_set[i].events =POLLIN;
+          poll_set[i+1].fd =pipefd_stderr[0];
+          poll_set[i+1].events =POLLIN;
+
+
       	   /* fermeture des extremites des tubes non utiles */
            close(pipefd_stderr[1]);
            close(pipefd_stdout[1]);
-           char buffer[100];
+           /*char buffer[100];
            read(pipefd_stdout[0], buffer, 100);
-           printf("lu : %s\n", buffer);
+           printf("lu : %s\n", buffer);*/
       	   num_procs_creat++;
       	}
      }
@@ -150,6 +161,8 @@ int main(int argc, char *argv[])
       */
 
      /* on attend les processus fils */
+     int timeout = 3 * 60 * 1000;
+     poll(poll_set, nfds, timeout);
 
      /* on ferme les descripteurs proprement */
 
