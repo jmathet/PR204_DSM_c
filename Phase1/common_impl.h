@@ -33,12 +33,14 @@ struct dsm_proc {
 };
 typedef struct dsm_proc dsm_proc_t;
 
-int creer_socket(int type, int *port_num);
+//int creer_socket(int type, int *port_num);
 
 int do_socket();
 
-void init_serv_addr(struct sockaddr_in *serv_addr, int port);
+void init_serv_addr(struct sockaddr_in *serv_addr, int port );
 
 void do_bind(int socket, struct sockaddr_in addr_in);
 
 void do_listen(int socket, int nb_max);
+
+int do_accept(int socket, struct sockaddr *addr, socklen_t* addrlen);

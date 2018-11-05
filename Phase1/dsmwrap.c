@@ -22,7 +22,7 @@ int main(int argc, char **argv)
 
    /* Envoi du numero de port au lanceur */
    /* pour qu'il le propage à tous les autres */
-   /* processus dsm */
+   /* processus dsm => utilisation de getname */
 
    /* on execute la bonne commande */
    return 0;

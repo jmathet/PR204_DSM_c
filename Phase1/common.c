@@ -1,23 +1,9 @@
 #include "common_impl.h"
 
-int creer_socket(int prop, int *port_num)
-{
-   int fd = 0;
-
-   /* fonction de creation et d'attachement */
-   /* d'une nouvelle socket */
-   /* renvoie le numero de descripteur */
-   /* et modifie le parametre port_num */
-
-   return fd;
+void error(char* error_description){
+  perror(error_description);
+  exit(EXIT_FAILURE);
 }
-
-/* Vous pouvez ecrire ici toutes les fonctions */
-/* qui pourraient etre utilisees par le lanceur */
-/* et le processus intermediaire. N'oubliez pas */
-/* de declarer le prototype de ces nouvelles */
-/* fonctions dans common_impl.h */
-
 
 int do_socket(){
   int file_des;
@@ -34,10 +20,9 @@ int do_socket(){
 
 void init_serv_addr(struct sockaddr_in *serv_addr, int port)
  {
-   // clean structure
-   memset(serv_addr, 0, sizeof(*serv_addr));
+   memset(serv_addr, 0, sizeof(*serv_addr)); // clean structure
    serv_addr->sin_family = AF_INET; // IP V4
-   serv_addr->sin_port = htons(port); // specified port in args
+   serv_addr->sin_port = port;
    serv_addr->sin_addr.s_addr = INADDR_ANY;
  }
 
@@ -54,3 +39,11 @@ void init_serv_addr(struct sockaddr_in *serv_addr, int port)
    if (-1 == listen_result)
      error("listen");
  }
+
+ int do_accept(int socket, struct sockaddr *addr, socklen_t* addrlen)
+{
+  int file_des_new = accept(socket, addr, addrlen);
+  if(-1 == file_des_new)
+    error("accept");
+  return file_des_new;
+}

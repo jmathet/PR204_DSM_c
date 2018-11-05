@@ -64,17 +64,20 @@ int main(int argc, char *argv[])
         free(line);
 
 
+
      /* creation de la socket d'ecoute */
      // INITS
      int sock;
      struct sockaddr_in serv_addr;
+     int serv_port;
+
      int enable=1; // used for setsockopt
 
      // SET UP
      sock = do_socket();
      if(-1 == setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)))
        perror("setsockopt");
-     init_serv_addr(&serv_addr, 0);
+     init_serv_addr(&serv_addr, serv_port);
      do_bind(sock, serv_addr);
      do_listen(sock, NB_MAX_PROC);
      /* + ecoute effective (=listen)*/
@@ -140,11 +143,14 @@ int main(int argc, char *argv[])
       	   num_procs_creat++;
       	}
      }
+    struct sockaddr_in client_addr;
 
-     for(i = 0; i < num_procs ; i++){
+    for(i = 0; i < num_procs ; i++){
 
-	/* on accepte les connexions des processus dsm */
-
+	  /* on accepte les connexions des processus dsm */
+    socklen_t addrlen = sizeof(struct sockaddr);
+    int connection_fd = do_accept(sock, (struct sockaddr*)&client_addr, &addrlen);
+    printf("connexion réussi\n");
 	/*  On recupere le nom de la machine distante */
 	/* 1- d'abord la taille de la chaine */
 	/* 2- puis la chaine elle-meme */
