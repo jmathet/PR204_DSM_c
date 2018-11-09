@@ -2,13 +2,12 @@
 
 int main(int argc, char **argv)
 {
-    int e2 = 0;
+  printf("Je suis dans dsmwrap\n" );
+
    /* processus intermediaire pour "nettoyer" */
    /* la liste des arguments qu'on va passer */
    /* a la commande a executer vraiment */
-   e2 = execl("ssh", "ssh", "travail64","truc", NULL);
-   printf("%d\n",e2);
-   perror("exec");
+
    /* creation d'une socket pour se connecter au */
    /* au lanceur et envoyer/recevoir les infos */
    /* necessaires pour la phase dsm_init */

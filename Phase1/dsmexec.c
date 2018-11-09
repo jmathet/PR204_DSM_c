@@ -1,4 +1,5 @@
 #include "common_impl.h"
+#include "errno.h"
 
 /* variables globales */
 
@@ -69,7 +70,7 @@ int main(int argc, char *argv[])
      // INITS
      int sock;
      struct sockaddr_in serv_addr;
-     int serv_port;
+     int serv_port = 8080;
 
      int enable=1; // used for setsockopt
 
@@ -112,7 +113,7 @@ int main(int argc, char *argv[])
            dup(STDOUT_FILENO);
            close(STDOUT_FILENO);
            int test_fils_stdout = dup(pipefd_stdout[1]);
-           printf("N° du descriptteur : %d\n", test_fils_stdout);
+           //printf("N° du descriptteur : %d\n", test_fils_stdout);
            fflush(stdout);
 
            close(pipefd_stdout[0]);
@@ -126,6 +127,13 @@ int main(int argc, char *argv[])
 
       	   /* jump to new prog : */
       	   /* execvp("ssh",newargv); */
+           int e2 = execlp("ssh", "ssh", "julien@localhost", "/home/julien/Projets/PR204/Phase1/bin/dsmwrap", NULL);
+
+           if (e2 == -1) {
+             perror("exec");
+             exit(EXIT_FAILURE);
+
+           }
 
       	} else  if(pid > 0) { /* pere */
           poll_set[i].fd =pipefd_stdout[0];
@@ -137,9 +145,10 @@ int main(int argc, char *argv[])
       	   /* fermeture des extremites des tubes non utiles */
            close(pipefd_stderr[1]);
            close(pipefd_stdout[1]);
-           /*char buffer[100];
+           char buffer[100];
+           memset(buffer, 0, 100);
            read(pipefd_stdout[0], buffer, 100);
-           printf("lu : %s\n", buffer);*/
+           printf("lu : %s\n", buffer);
       	   num_procs_creat++;
       	}
      }
