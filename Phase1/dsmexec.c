@@ -133,11 +133,8 @@ int main(int argc, char *argv[])
            arg_ssh[0] = "/home/gregory/Documents/PR204/Phase1/bin/dsmwrap";
            int e2 = execlp("ssh", "ssh", "gregory@localhost", arg_ssh[0], arg_ssh[1], arg_ssh[2], NULL);
 
-           if (e2 == -1) {
-             perror("exec");
-             exit(EXIT_FAILURE);
-
-           }
+           if (test_execlp == -1)
+             error("execlp");
 
       	} else  if(pid > 0) { /* pere */
           poll_set[i].fd =pipefd_stdout[0];
@@ -160,10 +157,10 @@ int main(int argc, char *argv[])
 
     for(i = 0; i < num_procs ; i++){
 
-	  /* on accepte les connexions des processus dsm */
-    socklen_t addrlen = sizeof(struct sockaddr);
-    int connection_fd = do_accept(sock, (struct sockaddr*)&client_addr, &addrlen);
-    printf("connexion réussi\n");
+	     /* on accepte les connexions des processus dsm */
+       socklen_t addrlen = sizeof(struct sockaddr);
+       int connection_fd = do_accept(sock, (struct sockaddr*)&client_addr, &addrlen);
+       printf("connexion réussi\n");
 	/*  On recupere le nom de la machine distante */
 	/* 1- d'abord la taille de la chaine */
 	/* 2- puis la chaine elle-meme */
