@@ -5,6 +5,33 @@ void error(char* error_description){
   exit(EXIT_FAILURE);
 }
 
+int creer_socket(int *port_num)
+{
+   int fd = 0;
+   int port;
+   struct sockaddr_in *serv_addr;
+
+   /* fonction de creation et d'attachement */
+   /* d'une nouvelle socket */
+   fd = do_socket();
+   init_serv_addr(serv_addr, 0); // init avec port choisi par la machine
+   do_bind(fd, *serv_addr);
+
+   // Get my ip address and port
+	 bzero(serv_addr, sizeof(serv_addr));
+   int len = sizeof(*serv_addr);
+   getsockname(fd, (struct sockaddr *) serv_addr, &len);
+   port = ntohs(serv_addr->sin_port);
+
+   *port_num = &port;
+
+   printf("Local port : %d\n", port_num);
+   /* renvoie le numero de descripteur */
+   /* et modifie le parametre port_num */
+
+   return fd;
+}
+
 int do_socket(){
   int file_des;
   do {

@@ -2,7 +2,12 @@
 
 int main(int argc, char **argv)
 {
-  printf("Je suis dans dsmwrap\n" );
+  int sock;
+  struct sockaddr_in host_addr;
+  printf("coucou");
+  int host_port;
+  int host_ip;
+  printf("Port serveur : %d\n",atoi(argv[1]) );
 
    /* processus intermediaire pour "nettoyer" */
    /* la liste des arguments qu'on va passer */
@@ -11,6 +16,10 @@ int main(int argc, char **argv)
    /* creation d'une socket pour se connecter au */
    /* au lanceur et envoyer/recevoir les infos */
    /* necessaires pour la phase dsm_init */
+   /* SOCKET SET-UP */
+  //  init_client_addr(&host_addr, host_ip, host_port);
+    //sock = do_socket();
+    //do_connect(sock, host_addr);
 
    /* Envoi du nom de machine au lanceur */
 

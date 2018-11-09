@@ -70,17 +70,20 @@ int main(int argc, char *argv[])
      // INITS
      int sock;
      struct sockaddr_in serv_addr;
-     int serv_port = 8080;
+     int *serv_port = malloc(sizeof(int));
+     char *arg_ssh[3];
+     arg_ssh[1]=malloc(sizeof(int));
+     arg_ssh[2]=malloc(sizeof(int));
+
+
 
      int enable=1; // used for setsockopt
 
      // SET UP
-     sock = do_socket();
-     if(-1 == setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)))
-       perror("setsockopt");
-     init_serv_addr(&serv_addr, serv_port);
-     do_bind(sock, serv_addr);
+     sock = creer_socket(serv_port);
      do_listen(sock, NB_MAX_PROC);
+     sprintf(arg_ssh[1],"%d",serv_port);
+
      /* + ecoute effective (=listen)*/
 
      struct pollfd poll_set[6];
@@ -127,7 +130,8 @@ int main(int argc, char *argv[])
 
       	   /* jump to new prog : */
       	   /* execvp("ssh",newargv); */
-           int e2 = execlp("ssh", "ssh", "julien@localhost", "/home/julien/Projets/PR204/Phase1/bin/dsmwrap", NULL);
+           arg_ssh[0] = "/home/gregory/Documents/PR204/Phase1/bin/dsmwrap";
+           int e2 = execlp("ssh", "ssh", "gregory@localhost", arg_ssh[0], arg_ssh[1], arg_ssh[2], NULL);
 
            if (e2 == -1) {
              perror("exec");
@@ -150,7 +154,7 @@ int main(int argc, char *argv[])
            read(pipefd_stdout[0], buffer, 100);
            printf("lu : %s\n", buffer);
       	   num_procs_creat++;
-      	}
+      	} // END else if /* père */
      }
     struct sockaddr_in client_addr;
 
