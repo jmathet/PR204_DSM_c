@@ -5,48 +5,24 @@ void error(char* error_description){
   exit(EXIT_FAILURE);
 }
 
-int creer_socket_serv(int *port_num,struct sockaddr_in *serv_addr)
+int creer_socket_serv(int *serv_port,struct sockaddr_in *serv_addr)
 {
-   int fd = 0;
+   int fd;
    int port;
 
-   /* fonction de creation et d'attachement */
-   /* d'une nouvelle socket */
+   /* fonction de creation et d'attachement d'une nouvelle socket */
    fd = do_socket();
-   init_serv_addr(serv_addr, *port_num); // init avec port choisi par la machine
+   init_serv_addr(serv_addr, *serv_port); // init avec port choisi par la machine
    do_bind(fd, *serv_addr);
 
-   // Get my ip address and port
+   // Récupération du n° de port de la socket
    socklen_t len = sizeof(struct sockaddr_in);
    getsockname(fd, (struct sockaddr *) serv_addr, &len);
    port = ntohs(serv_addr->sin_port);
-   *port_num = port;
+   *serv_port = port;
 
    /* renvoie le numero de descripteur */
-   /* et modifie le parametre port_num */
-   return fd;
-}
-
-//A SUPPRIMER
-int creer_socket_clt(int *port_num, char *ip, struct sockaddr_in *serv_addr)
-{
-   int fd = 0;
-   int port;
-
-   /* fonction de creation et d'attachement */
-   /* d'une nouvelle socket */
-   fd = do_socket();
-   init_client_addr(serv_addr, ip, *port_num); // init avec port choisi par la machine
-
-   // Get my ip address and port
-	 //bzero(serv_addr, sizeof(struct sockaddr_in));
-   socklen_t len = sizeof(struct sockaddr_in);
-   getsockname(fd, (struct sockaddr *) serv_addr, &len);
-   port = ntohs(serv_addr->sin_port);
-   *port_num = port;
-
-   /* renvoie le numero de descripteur */
-   /* et modifie le parametre port_num */
+   /* et modifie le parametre serv_port */
    return fd;
 }
 

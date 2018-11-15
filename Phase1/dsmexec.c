@@ -128,9 +128,9 @@ int main(int argc, char *argv[])
       	   /* jump to new prog : */
       	   /* execvp("ssh",newargv); */
            arg_ssh[0] = "/home/julien/Projets/PR204/Phase1/bin/dsmwrap";
-           int e2 = execlp("ssh", "ssh", "julien@localhost", arg_ssh[0], arg_ssh[1], arg_ssh[2], NULL);
+           int exec_res = execlp("ssh", "ssh", "julien@localhost", arg_ssh[0], arg_ssh[1], arg_ssh[2], NULL);
 
-           if (e2 == -1) {
+           if (exec_res == -1) {
              perror("exec");
              exit(EXIT_FAILURE);
 
@@ -160,7 +160,7 @@ int main(int argc, char *argv[])
 	  /* on accepte les connexions des processus dsm */
     socklen_t addrlen = sizeof(struct sockaddr);
     int connection_fd = do_accept(sock, (struct sockaddr*)&client_addr, &addrlen);
-    printf("connexion réussi %d\n", connection_fd);
+    printf("[dsmexec] connexion réussi %d\n", connection_fd);
 
 	/*  On recupere le nom de la machine distante */
 	/* 1- d'abord la taille de la chaine */
@@ -185,13 +185,13 @@ int main(int argc, char *argv[])
             je recupere les infos sur les tubes de redirection
             jusqu'à ce qu'ils soient inactifs (ie fermes par les
             processus dsm ecrivains de l'autre cote ...)
-
+            int timeout = 3 * 60 * 1000;
+            poll(poll_set, nfds, timeout);
          };
       */
 
-     /* on attend les processus fils */
-     int timeout = 3 * 60 * 1000;
-     poll(poll_set, nfds, timeout);
+     /* on attend les processus fils  pour éviter les processus zombies*/
+
 
      /* on ferme les descripteurs proprement */
 

@@ -34,9 +34,7 @@ struct dsm_proc {
 };
 typedef struct dsm_proc dsm_proc_t;
 
-int creer_socket_serv(int *port_num,struct sockaddr_in *serv_addr);
-
-int creer_socket_clt(int *port_num, char *ip, struct sockaddr_in *serv_addr);
+int creer_socket_serv(int *serv_port,struct sockaddr_in *serv_addr);
 
 int do_socket();
 

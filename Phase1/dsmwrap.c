@@ -3,14 +3,14 @@
 int main(int argc, char **argv)
 {
   printf("Lancement de dsmwrap\n");
-  int sock;
-  printf("Port serveur : %d\n",atoi(argv[1]) );
-  printf("IP serveur : %d\n",atoi(argv[2]) );
+  printf("[dsmwrap] Port serveur reçu : %d\n",atoi(argv[1]) );
+  printf("[dsmwrap] IP serveur reçu : %d\n",atoi(argv[2]) );
+  fflush(stdout);
    /* processus intermediaire pour "nettoyer" */
-
    /* la liste des arguments qu'on va passer */
-
    /* a la commande a executer vraiment */
+   /* au lanceur et envoyer/recevoir les infos */
+   /* necessaires pour la phase dsm_init */
 
    /* SOCKET SET-UP declarations */
    struct sockaddr_in serv_addr;
@@ -18,25 +18,21 @@ int main(int argc, char **argv)
    host_ip = malloc(10*sizeof(char));
    strncpy(host_ip, argv[2], 10);
    int host_port = atoi(argv[1]);
-   int fd;
+   int sock;
 
    /* SOCKET SET-UP construction */
-   fd = do_socket();
+   sock = do_socket();
    init_client_addr(&serv_addr, host_ip, host_port);
-
-   do_connect(fd, serv_addr);
-   printf("[dsmwrap]connexion en cours\n");
-   /* au lanceur et envoyer/recevoir les infos */
-
-   /* necessaires pour la phase dsm_init */
-
+   do_connect(sock, serv_addr);
 
 
    /* Envoi du nom de machine au lanceur */
+   //gethostname()
 
    /* Envoi du pid au lanceur */
+   //getpid()
 
-   /* Creation de la socket d'ecoute pour les */
+   /* Creation de la socket d'ecoute (port et IP aléatoires) pour les */
    /* connexions avec les autres processus dsm */
 
    /* Envoi du numero de port au lanceur */
@@ -44,6 +40,5 @@ int main(int argc, char **argv)
    /* processus dsm => utilisation de getname */
 
    /* on execute la bonne commande */
-   while(1);
    return 0;
 }
