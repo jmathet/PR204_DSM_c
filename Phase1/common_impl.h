@@ -9,7 +9,8 @@
 #include <fcntl.h>
 #include <poll.h>
 #include <netinet/in.h>
-
+#include <arpa/inet.h>
+#include <netinet/in.h>
 
 /* autres includes (eventuellement) */
 
@@ -33,14 +34,19 @@ struct dsm_proc {
 };
 typedef struct dsm_proc dsm_proc_t;
 
-int creer_socket(int *port_num);
+int creer_socket_serv(int *port_num,struct sockaddr_in *serv_addr);
+
+int creer_socket_clt(int *port_num, char *ip, struct sockaddr_in *serv_addr);
 
 int do_socket();
 
 void init_serv_addr(struct sockaddr_in *serv_addr, int port );
 
+void init_client_addr(struct sockaddr_in *serv_addr, char *ip, int port) ;
 void do_bind(int socket, struct sockaddr_in addr_in);
 
 void do_listen(int socket, int nb_max);
 
 int do_accept(int socket, struct sockaddr *addr, socklen_t* addrlen);
+
+void do_connect(int sock, struct sockaddr_in host_addr);

@@ -5,30 +5,48 @@ void error(char* error_description){
   exit(EXIT_FAILURE);
 }
 
-int creer_socket(int *port_num)
+int creer_socket_serv(int *port_num,struct sockaddr_in *serv_addr)
 {
    int fd = 0;
    int port;
-   struct sockaddr_in *serv_addr;
 
    /* fonction de creation et d'attachement */
    /* d'une nouvelle socket */
    fd = do_socket();
-   init_serv_addr(serv_addr, 0); // init avec port choisi par la machine
+   init_serv_addr(serv_addr, *port_num); // init avec port choisi par la machine
    do_bind(fd, *serv_addr);
 
    // Get my ip address and port
-	 bzero(serv_addr, sizeof(serv_addr));
-   int len = sizeof(*serv_addr);
+   socklen_t len = sizeof(struct sockaddr_in);
    getsockname(fd, (struct sockaddr *) serv_addr, &len);
    port = ntohs(serv_addr->sin_port);
+   *port_num = port;
 
-   *port_num = &port;
-
-   printf("Local port : %d\n", port_num);
    /* renvoie le numero de descripteur */
    /* et modifie le parametre port_num */
+   return fd;
+}
 
+//A SUPPRIMER
+int creer_socket_clt(int *port_num, char *ip, struct sockaddr_in *serv_addr)
+{
+   int fd = 0;
+   int port;
+
+   /* fonction de creation et d'attachement */
+   /* d'une nouvelle socket */
+   fd = do_socket();
+   init_client_addr(serv_addr, ip, *port_num); // init avec port choisi par la machine
+
+   // Get my ip address and port
+	 //bzero(serv_addr, sizeof(struct sockaddr_in));
+   socklen_t len = sizeof(struct sockaddr_in);
+   getsockname(fd, (struct sockaddr *) serv_addr, &len);
+   port = ntohs(serv_addr->sin_port);
+   *port_num = port;
+
+   /* renvoie le numero de descripteur */
+   /* et modifie le parametre port_num */
    return fd;
 }
 
@@ -47,11 +65,19 @@ int do_socket(){
 
 void init_serv_addr(struct sockaddr_in *serv_addr, int port)
  {
-   memset(serv_addr, 0, sizeof(*serv_addr)); // clean structure
+   memset(serv_addr, 0, sizeof(struct sockaddr_in)); // clean structure
    serv_addr->sin_family = AF_INET; // IP V4
    serv_addr->sin_port = port;
    serv_addr->sin_addr.s_addr = INADDR_ANY;
  }
+
+ void init_client_addr(struct sockaddr_in *serv_addr, char *ip, int port) {
+    // clean structure
+    memset(serv_addr, '\0', sizeof(*serv_addr));
+    serv_addr->sin_family = AF_INET; // IP V4
+    serv_addr->sin_port = htons(port); // specified port in args
+    serv_addr->sin_addr.s_addr = inet_addr(ip); // specified server IP in args
+  }
 
  void do_bind(int socket, struct sockaddr_in addr_in)
  {
@@ -69,8 +95,21 @@ void init_serv_addr(struct sockaddr_in *serv_addr, int port)
 
  int do_accept(int socket, struct sockaddr *addr, socklen_t* addrlen)
 {
+  printf("[do_accept] début\n");
   int file_des_new = accept(socket, addr, addrlen);
+  printf("[do_accept] %d\n",file_des_new );
   if(-1 == file_des_new)
     error("accept");
   return file_des_new;
 }
+
+void do_connect(int sock, struct sockaddr_in host_addr) {
+   int connect_result;
+
+   do {
+     connect_result = connect(sock, (struct sockaddr *) &host_addr, sizeof(host_addr));
+   } while ((connect_result == -1) && (errno == EAGAIN || errno == EINTR));
+
+   if (connect_result == -1)
+     error("connect");
+ }

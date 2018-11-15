@@ -1,5 +1,6 @@
 #include "common_impl.h"
 #include "errno.h"
+#include <arpa/inet.h>
 
 /* variables globales */
 
@@ -59,32 +60,30 @@ int main(int argc, char *argv[])
         i++;
       }
 
-
       fclose(fp);
       if (line)
         free(line);
 
-
-
      /* creation de la socket d'ecoute */
      // INITS
      int sock;
-     struct sockaddr_in serv_addr;
+     struct sockaddr_in *serv_addr=malloc(sizeof(struct sockaddr_in));
      int *serv_port = malloc(sizeof(int));
      char *arg_ssh[3];
      arg_ssh[1]=malloc(sizeof(int));
-     arg_ssh[2]=malloc(sizeof(int));
+     arg_ssh[2]=malloc(20*sizeof(char));
 
-
-
-     int enable=1; // used for setsockopt
+     //int enable=1; // used for setsockopt UNUSED
 
      // SET UP
-     sock = creer_socket(serv_port);
-     do_listen(sock, NB_MAX_PROC);
-     sprintf(arg_ssh[1],"%d",serv_port);
+     sock = creer_socket_serv(serv_port,serv_addr);
+     sprintf(arg_ssh[2],"%s\n", inet_ntoa(serv_addr->sin_addr));
+     sprintf(arg_ssh[1],"%d", *serv_port);
+     printf("%s//%d\n", inet_ntoa(serv_addr->sin_addr), *serv_port);
+
 
      /* + ecoute effective (=listen)*/
+     do_listen(sock, NB_MAX_PROC);
 
      struct pollfd poll_set[6];
      int nfds = 0;
@@ -113,28 +112,29 @@ int main(int argc, char *argv[])
 
       	if (pid == 0) { /* fils */
       	   /* redirection stdout */
+           /*close(STDOUT_FILENO);
            dup(STDOUT_FILENO);
-           close(STDOUT_FILENO);
-           int test_fils_stdout = dup(pipefd_stdout[1]);
-           //printf("N° du descriptteur : %d\n", test_fils_stdout);
-           fflush(stdout);
+           fflush(stdout);*/
 
-           close(pipefd_stdout[0]);
+           //close(pipefd_stdout[0]);
 
       	   /* redirection stderr */
-           close(STDERR_FILENO);
+           /*close(STDERR_FILENO);
            dup(pipefd_stderr[1]);
-           close(pipefd_stderr[0]);
+           close(pipefd_stderr[0]);*/
 
       	   /* Creation du tableau d'arguments pour le ssh */
 
       	   /* jump to new prog : */
       	   /* execvp("ssh",newargv); */
-           arg_ssh[0] = "/home/gregory/Documents/PR204/Phase1/bin/dsmwrap";
-           int e2 = execlp("ssh", "ssh", "gregory@localhost", arg_ssh[0], arg_ssh[1], arg_ssh[2], NULL);
+           arg_ssh[0] = "/home/julien/Projets/PR204/Phase1/bin/dsmwrap";
+           int e2 = execlp("ssh", "ssh", "julien@localhost", arg_ssh[0], arg_ssh[1], arg_ssh[2], NULL);
 
-           if (test_execlp == -1)
-             error("execlp");
+           if (e2 == -1) {
+             perror("exec");
+             exit(EXIT_FAILURE);
+
+           }
 
       	} else  if(pid > 0) { /* pere */
           poll_set[i].fd =pipefd_stdout[0];
@@ -157,10 +157,11 @@ int main(int argc, char *argv[])
 
     for(i = 0; i < num_procs ; i++){
 
-	     /* on accepte les connexions des processus dsm */
-       socklen_t addrlen = sizeof(struct sockaddr);
-       int connection_fd = do_accept(sock, (struct sockaddr*)&client_addr, &addrlen);
-       printf("connexion réussi\n");
+	  /* on accepte les connexions des processus dsm */
+    socklen_t addrlen = sizeof(struct sockaddr);
+    int connection_fd = do_accept(sock, (struct sockaddr*)&client_addr, &addrlen);
+    printf("connexion réussi %d\n", connection_fd);
+
 	/*  On recupere le nom de la machine distante */
 	/* 1- d'abord la taille de la chaine */
 	/* 2- puis la chaine elle-meme */
