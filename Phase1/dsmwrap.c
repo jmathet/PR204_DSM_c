@@ -15,29 +15,49 @@ int main(int argc, char **argv)
    /* SOCKET SET-UP declarations */
    struct sockaddr_in serv_addr;
    char * host_ip;
-   host_ip = malloc(10*sizeof(char));
+   host_ip = malloc(LENGTH_IP_ADDR);
    strncpy(host_ip, argv[2], 10);
    int host_port = atoi(argv[1]);
-   int sock;
+   int sock_initialisation;
 
    /* SOCKET SET-UP construction */
-   sock = do_socket();
+   sock_initialisation = do_socket();
    init_client_addr(&serv_addr, host_ip, host_port);
-   do_connect(sock, serv_addr);
+   do_connect(sock_initialisation, serv_addr); // connexion à dsmexec (socket d'initialisation)
 
 
-   /* Envoi du nom de machine au lanceur */
-   //gethostname()
+   /* Récupration du nom de la machine pour l'envoyer au lanceur */
+   char hostname[1024];
+   gethostname(hostname, 1024);
 
-   /* Envoi du pid au lanceur */
-   //getpid()
+
+
 
    /* Creation de la socket d'ecoute (port et IP aléatoires) pour les */
    /* connexions avec les autres processus dsm */
+   int sock_ecoute;
+   struct sockaddr_in *serv_addr_ecoute=malloc(sizeof(struct sockaddr_in));
+   int *serv_port = malloc(sizeof(int));
 
-   /* Envoi du numero de port au lanceur */
-   /* pour qu'il le propage à tous les autres */
-   /* processus dsm => utilisation de getname */
+   sock_ecoute = creer_socket_serv(serv_port,serv_addr_ecoute);
+   do_listen(sock_ecoute, NB_MAX_PROC);
+
+   /* Récupération du n° de port de la socket */
+   int port;
+   socklen_t len = sizeof(struct sockaddr_in);
+   getsockname(sock_ecoute, (struct sockaddr *) serv_addr_ecoute, &len);
+   port = ntohs(serv_addr_ecoute->sin_port);
+
+   /* Envoi du numero de port et du nom au lanceur au travers de la structure info_init */
+   info_init_t *info_init = malloc(sizeof(info_init_t));
+   strcpy(info_init->name, hostname);
+   info_init->port = port;
+
+   int sent = 0;
+   int to_send = sizeof(info_init_t);
+   do {
+     sent +=    write(sock_initialisation, info_init, sizeof(info_init_t));
+   } while(sent != to_send);
 
    /* on execute la bonne commande */
    return 0;

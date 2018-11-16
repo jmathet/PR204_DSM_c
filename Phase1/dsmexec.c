@@ -6,7 +6,7 @@
 
 /* un tableau gerant les infos d'identification */
 /* des processus dsm */
-dsm_proc_t *proc_array = NULL;
+//dsm_proc_t *proc_array = NULL;
 
 /* le nombre de processus effectivement crees */
 volatile int num_procs_creat = 0;
@@ -31,9 +31,11 @@ int main(int argc, char *argv[])
     //usage();
   //} else {
      pid_t pid;
-     int num_procs = 3;
+     int nb_procs = 3;
      int i = 0;
      char * machines[3];
+     dsm_proc_distant_t *proc_infos[3];
+     proc_infos_init(proc_infos, 3);
 
      /* Mise en place d'un traitant pour recuperer les fils zombies*/
      /* XXX.sa_handler = sigchld_handler; */
@@ -55,9 +57,12 @@ int main(int argc, char *argv[])
 
       int j = 0;
       while ((line_read = getline(&line, &len, fp)) != -1) {
-        machines[j] = line;
-        printf("%s",machines[j] );
-        i++;
+        machines[j] = strtok(line,"\n");
+        sprintf(proc_infos[j]->name, machines[j]);
+        proc_infos[j]->rank = j;
+        printf("%s // %d\n",proc_infos[j]->name, proc_infos[j]->rank );
+        fflush(stdout);
+        j++;
       }
 
       fclose(fp);
@@ -90,7 +95,7 @@ int main(int argc, char *argv[])
      memset(poll_set, 0, sizeof(struct pollfd));
 
      /* creation des fils */
-     for(i = 0; i < num_procs ; i++) {
+     for(i = 0; i < nb_procs ; i++) {
 
       	/* creation du tube pour rediriger stdout */
         int pipefd_stdout[2];
@@ -155,12 +160,26 @@ int main(int argc, char *argv[])
      }
     struct sockaddr_in client_addr;
 
-    for(i = 0; i < num_procs ; i++){
+    for(i = 0; i < nb_procs ; i++){
 
 	  /* on accepte les connexions des processus dsm */
     socklen_t addrlen = sizeof(struct sockaddr);
-    int connection_fd = do_accept(sock, (struct sockaddr*)&client_addr, &addrlen);
-    printf("[dsmexec] connexion réussi %d\n", connection_fd);
+    int fd_sock_init = do_accept(sock, (struct sockaddr*)&client_addr, &addrlen);
+    printf("[dsmexec] connexion réussi %d\n", fd_sock_init);
+
+    info_init_t* buf_read;
+    buf_read= malloc(sizeof(info_init_t));
+    int test_read = read(fd_sock_init, buf_read, sizeof(info_init_t));
+    if (test_read < 0) {
+      error("read");
+    }
+    printf("[dsmexec]  nom machine : %s // port socket ecoute : %d \n",buf_read->name, buf_read->port );
+    printf("@IP = %s\n",inet_ntoa(client_addr.sin_addr));
+    fflush(stdout);
+
+    int rank = find_rank_byname(proc_infos, buf_read->name, nb_procs);
+    printf("%d\n", rank);
+
 
 	/*  On recupere le nom de la machine distante */
 	/* 1- d'abord la taille de la chaine */

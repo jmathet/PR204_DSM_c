@@ -5,6 +5,14 @@ void error(char* error_description){
   exit(EXIT_FAILURE);
 }
 
+
+void proc_infos_init(dsm_proc_distant_t *proc_infos[], int nb_proc){
+  for (int i = 0; i < nb_proc; i++) {
+    proc_infos[i] = malloc(sizeof(dsm_proc_distant_t*));
+    proc_infos[i]->bool_init = 0;
+  }
+}
+
 int creer_socket_serv(int *serv_port,struct sockaddr_in *serv_addr)
 {
    int fd;
@@ -88,4 +96,13 @@ void do_connect(int sock, struct sockaddr_in host_addr) {
 
    if (connect_result == -1)
      error("connect");
+ }
+
+ int find_rank_byname(dsm_proc_distant_t *proc_infos[], char *name, int nb_proc){
+   for (int i = 0; i < nb_proc; i++) {
+     if (strcmp(proc_infos[i]->name, name)==0 && proc_infos[i]->bool_init==0) {
+        proc_infos[i]->bool_init = 1;
+        return i;
+     }
+   }
  }
