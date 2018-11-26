@@ -25,13 +25,9 @@ int main(int argc, char **argv)
    init_client_addr(&serv_addr, host_ip, host_port);
    do_connect(sock_initialisation, serv_addr); // connexion à dsmexec (socket d'initialisation)
 
-
    /* Récupration du nom de la machine pour l'envoyer au lanceur */
    char hostname[1024];
    gethostname(hostname, 1024);
-
-
-
 
    /* Creation de la socket d'ecoute (port et IP aléatoires) pour les */
    /* connexions avec les autres processus dsm */
@@ -58,6 +54,37 @@ int main(int argc, char **argv)
    do {
      sent +=    write(sock_initialisation, info_init, sizeof(info_init_t));
    } while(sent != to_send);
+
+   /* Lecture du nombre de processus dsm */
+   printf(">>>>>>[dsmwrap] début lecture\n");
+   fflush(stdout);
+   int nb_procs;
+   int test_read_nbprocs = read(sock_initialisation, &nb_procs, sizeof(int));
+   if (test_read_nbprocs < 0) {
+     error("read nbprocs");
+   }
+   printf("[dsmwrap] nbprocs = %d\n", nb_procs);
+   fflush(stdout);
+
+   /* Lecture du rand du processus */
+   int rank;
+   int test_read_rank = read(sock_initialisation, &rank, sizeof(int));
+   if (test_read_rank < 0) {
+     error("read rank");
+   }
+   printf("[dsmwrap] rank = %d\n", rank);
+   fflush(stdout);
+
+   /* Lecture des infos (port + IP) nécessaires aux connexions aux tres processus dsm */
+   int fd_procs[nb_procs];
+   info_init_dsmwrap_t * infos_init_dsmwrap[nb_procs];
+   info_dsmwrap_init(infos_init_dsmwrap, nb_procs);
+   for (int i = 0; i < nb_procs; i++) {
+     int test_info_init_dsmwrap = read(sock_initialisation, infos_init_dsmwrap[i], sizeof(info_init_dsmwrap_t));
+     if (test_info_init_dsmwrap < 0) {
+       error("read info_init_dsmwrap");
+     }
+   }
 
    /* on execute la bonne commande */
    return 0;

@@ -40,9 +40,17 @@ struct info_init {
 };
 typedef struct info_init info_init_t;
 
+struct info_init_dsmwrap {
+  char IP[LENGTH_IP_ADDR];
+  int port;
+};
+typedef struct info_init_dsmwrap info_init_dsmwrap_t;
+
 void error(char* error_description);
 
 void proc_infos_init(dsm_proc_distant_t *proc_infos[], int nb_proc);
+
+void info_dsmwrap_init(info_init_dsmwrap_t *infos_init_dsmwrap[], int nb_procs);
 
 int creer_socket_serv(int *serv_port,struct sockaddr_in *serv_addr);
 

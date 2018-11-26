@@ -16,7 +16,7 @@ static char *num2address( int numpage )
 }
 
 int address2num(char * addr){
-    return (((long int)(addr_BASE_ADDR))/(PAGE_SIZE));
+    return (((long int)(addr-BASE_ADDR))/(PAGE_SIZE));
 }
 
 /* fonctions pouvant etre utiles */

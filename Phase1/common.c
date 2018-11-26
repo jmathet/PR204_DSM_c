@@ -6,10 +6,16 @@ void error(char* error_description){
 }
 
 
-void proc_infos_init(dsm_proc_distant_t *proc_infos[], int nb_proc){
-  for (int i = 0; i < nb_proc; i++) {
-    proc_infos[i] = malloc(sizeof(dsm_proc_distant_t*));
+void proc_infos_init(dsm_proc_distant_t *proc_infos[], int nb_procs){
+  for (int i = 0; i < nb_procs; i++) {
+    proc_infos[i] = malloc(sizeof(dsm_proc_distant_t));
     proc_infos[i]->bool_init = 0;
+  }
+}
+
+void info_dsmwrap_init(info_init_dsmwrap_t *infos_init_dsmwrap[], int nb_procs){
+  for (int i = 0; i < nb_procs; i++) {
+    infos_init_dsmwrap[i] = malloc(sizeof(info_init_dsmwrap_t));
   }
 }
 

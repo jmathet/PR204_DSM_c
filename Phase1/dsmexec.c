@@ -20,149 +20,149 @@ void usage(void)
 
 void sigchld_handler(int sig)
 {
-   /* on traite les fils qui se terminent */
-   /* pour eviter les zombies */
+  /* on traite les fils qui se terminent */
+  /* pour eviter les zombies */
 }
 
 
 int main(int argc, char *argv[])
 {
   //if (argc < 3){
-    //usage();
+  //usage();
   //} else {
-     pid_t pid;
-     int nb_procs = 3;
-     int i = 0;
-     char * machines[3];
-     dsm_proc_distant_t *proc_infos[3];
-     proc_infos_init(proc_infos, 3);
+  pid_t pid;
+  int nb_procs = 3;
+  int i = 0;
+  char * machines[3];
+  dsm_proc_distant_t *proc_infos[3];
+  proc_infos_init(proc_infos, 3);
 
-     /* Mise en place d'un traitant pour recuperer les fils zombies*/
-     /* XXX.sa_handler = sigchld_handler; */
+  /* Mise en place d'un traitant pour recuperer les fils zombies*/
+  /* XXX.sa_handler = sigchld_handler; */
 
-     /* lecture du fichier de machines */
-     /* 1- on recupere le nombre de processus a lancer */
-     /* 2- on recupere les noms des machines : le nom de */
-     /* la machine est un des elements d'identification */
-     FILE * fp;
-     char * line = NULL;
-     size_t len = 0;
-     ssize_t line_read;
-     fp = fopen(argv[1], "r");
+  /* lecture du fichier de machines */
+  /* 1- on recupere le nombre de processus a lancer */
+  /* 2- on recupere les noms des machines : le nom de */
+  /* la machine est un des elements d'identification */
+  FILE * fp;
+  char * line = NULL;
+  size_t len = 0;
+  ssize_t line_read;
+  fp = fopen(argv[1], "r");
 
-     if (fp == NULL){
-        perror("error fd");
+  if (fp == NULL){
+    perror("error fd");
+    exit(EXIT_FAILURE);
+  }
+
+  int j = 0;
+  while ((line_read = getline(&line, &len, fp)) != -1) {
+    machines[j] = strtok(line,"\n");
+    sprintf(proc_infos[j]->name, machines[j]);
+    proc_infos[j]->rank = j;
+    printf("%s // %d\n",proc_infos[j]->name, proc_infos[j]->rank );
+    fflush(stdout);
+    j++;
+  }
+
+  fclose(fp);
+  if (line)
+  free(line);
+
+  /* creation de la socket d'ecoute */
+  // INITS
+  int sock;
+  struct sockaddr_in *serv_addr=malloc(sizeof(struct sockaddr_in));
+  int *serv_port = malloc(sizeof(int));
+  char *arg_ssh[3];
+  arg_ssh[1]=malloc(sizeof(int));
+  arg_ssh[2]=malloc(20*sizeof(char));
+
+  //int enable=1; // used for setsockopt UNUSED
+
+  // SET UP
+  sock = creer_socket_serv(serv_port,serv_addr);
+  sprintf(arg_ssh[2],"%s\n", inet_ntoa(serv_addr->sin_addr));
+  sprintf(arg_ssh[1],"%d", *serv_port);
+  printf("%s//%d\n", inet_ntoa(serv_addr->sin_addr), *serv_port);
+
+
+  /* + ecoute effective (=listen)*/
+  do_listen(sock, NB_MAX_PROC);
+
+  struct pollfd poll_set[6];
+  int nfds = 0;
+  memset(poll_set, 0, sizeof(struct pollfd));
+
+  /* creation des fils */
+  for(i = 0; i < nb_procs ; i++) {
+
+    /* creation du tube pour rediriger stdout */
+    int pipefd_stdout[2];
+    if (pipe(pipefd_stdout)==-1){
+      perror("pipe stdout");
+      exit(EXIT_FAILURE);
+    }
+
+    /* creation du tube pour rediriger stderr */
+    int pipefd_stderr[2];
+    if (pipe(pipefd_stderr)==-1){
+      perror("pipe stderr");
+      exit(EXIT_FAILURE);
+    }
+
+    pid = fork();
+    nfds++;
+    if(pid == -1) ERROR_EXIT("fork");
+
+    if (pid == 0) { /* fils */
+      /* redirection stdout */
+      /*close(STDOUT_FILENO);
+      dup(STDOUT_FILENO);
+      fflush(stdout);*/
+
+      //close(pipefd_stdout[0]);
+
+      /* redirection stderr */
+      /*close(STDERR_FILENO);
+      dup(pipefd_stderr[1]);
+      close(pipefd_stderr[0]);*/
+
+      /* Creation du tableau d'arguments pour le ssh */
+
+      /* jump to new prog : */
+      /* execvp("ssh",newargv); */
+      arg_ssh[0] = "/home/julien/Projets/PR204/Phase1/bin/dsmwrap";
+      int exec_res = execlp("ssh", "ssh", "julien@localhost", arg_ssh[0], arg_ssh[1], arg_ssh[2], NULL);
+
+      if (exec_res == -1) {
+        perror("exec");
         exit(EXIT_FAILURE);
+
       }
 
-      int j = 0;
-      while ((line_read = getline(&line, &len, fp)) != -1) {
-        machines[j] = strtok(line,"\n");
-        sprintf(proc_infos[j]->name, machines[j]);
-        proc_infos[j]->rank = j;
-        printf("%s // %d\n",proc_infos[j]->name, proc_infos[j]->rank );
-        fflush(stdout);
-        j++;
-      }
-
-      fclose(fp);
-      if (line)
-        free(line);
-
-     /* creation de la socket d'ecoute */
-     // INITS
-     int sock;
-     struct sockaddr_in *serv_addr=malloc(sizeof(struct sockaddr_in));
-     int *serv_port = malloc(sizeof(int));
-     char *arg_ssh[3];
-     arg_ssh[1]=malloc(sizeof(int));
-     arg_ssh[2]=malloc(20*sizeof(char));
-
-     //int enable=1; // used for setsockopt UNUSED
-
-     // SET UP
-     sock = creer_socket_serv(serv_port,serv_addr);
-     sprintf(arg_ssh[2],"%s\n", inet_ntoa(serv_addr->sin_addr));
-     sprintf(arg_ssh[1],"%d", *serv_port);
-     printf("%s//%d\n", inet_ntoa(serv_addr->sin_addr), *serv_port);
+    } else  if(pid > 0) { /* pere */
+      poll_set[i].fd =pipefd_stdout[0];
+      poll_set[i].events =POLLIN;
+      poll_set[i+1].fd =pipefd_stderr[0];
+      poll_set[i+1].events =POLLIN;
 
 
-     /* + ecoute effective (=listen)*/
-     do_listen(sock, NB_MAX_PROC);
+      /* fermeture des extremites des tubes non utiles */
+      close(pipefd_stderr[1]);
+      close(pipefd_stdout[1]);
+      char buffer[100];
+      memset(buffer, 0, 100);
+      read(pipefd_stdout[0], buffer, 100);
+      printf("lu : %s\n", buffer);
+      num_procs_creat++;
+    } // END else if /* père */
+  }
+  struct sockaddr_in client_addr;
 
-     struct pollfd poll_set[6];
-     int nfds = 0;
-     memset(poll_set, 0, sizeof(struct pollfd));
+  for(i = 0; i < nb_procs ; i++){
 
-     /* creation des fils */
-     for(i = 0; i < nb_procs ; i++) {
-
-      	/* creation du tube pour rediriger stdout */
-        int pipefd_stdout[2];
-        if (pipe(pipefd_stdout)==-1){
-          perror("pipe stdout");
-          exit(EXIT_FAILURE);
-        }
-
-      	/* creation du tube pour rediriger stderr */
-        int pipefd_stderr[2];
-        if (pipe(pipefd_stderr)==-1){
-          perror("pipe stderr");
-          exit(EXIT_FAILURE);
-        }
-
-      	pid = fork();
-        nfds++;
-      	if(pid == -1) ERROR_EXIT("fork");
-
-      	if (pid == 0) { /* fils */
-      	   /* redirection stdout */
-           /*close(STDOUT_FILENO);
-           dup(STDOUT_FILENO);
-           fflush(stdout);*/
-
-           //close(pipefd_stdout[0]);
-
-      	   /* redirection stderr */
-           /*close(STDERR_FILENO);
-           dup(pipefd_stderr[1]);
-           close(pipefd_stderr[0]);*/
-
-      	   /* Creation du tableau d'arguments pour le ssh */
-
-      	   /* jump to new prog : */
-      	   /* execvp("ssh",newargv); */
-           arg_ssh[0] = "/home/julien/Projets/PR204/Phase1/bin/dsmwrap";
-           int exec_res = execlp("ssh", "ssh", "julien@localhost", arg_ssh[0], arg_ssh[1], arg_ssh[2], NULL);
-
-           if (exec_res == -1) {
-             perror("exec");
-             exit(EXIT_FAILURE);
-
-           }
-
-      	} else  if(pid > 0) { /* pere */
-          poll_set[i].fd =pipefd_stdout[0];
-          poll_set[i].events =POLLIN;
-          poll_set[i+1].fd =pipefd_stderr[0];
-          poll_set[i+1].events =POLLIN;
-
-
-      	   /* fermeture des extremites des tubes non utiles */
-           close(pipefd_stderr[1]);
-           close(pipefd_stdout[1]);
-           char buffer[100];
-           memset(buffer, 0, 100);
-           read(pipefd_stdout[0], buffer, 100);
-           printf("lu : %s\n", buffer);
-      	   num_procs_creat++;
-      	} // END else if /* père */
-     }
-    struct sockaddr_in client_addr;
-
-    for(i = 0; i < nb_procs ; i++){
-
-	  /* on accepte les connexions des processus dsm */
+    /* on accepte les connexions des processus dsm */
     socklen_t addrlen = sizeof(struct sockaddr);
     int fd_sock_init = do_accept(sock, (struct sockaddr*)&client_addr, &addrlen);
     printf("[dsmexec] connexion réussi %d\n", fd_sock_init);
@@ -176,45 +176,81 @@ int main(int argc, char *argv[])
     printf("[dsmexec]  nom machine : %s // port socket ecoute : %d \n",buf_read->name, buf_read->port );
     printf("@IP = %s\n",inet_ntoa(client_addr.sin_addr));
     fflush(stdout);
+    proc_infos[i]->port_ecoute = buf_read->port;
+    strcpy(proc_infos[i]->name, buf_read->name);
+    strcpy(proc_infos[i]->IP, inet_ntoa(client_addr.sin_addr));
+    proc_infos[i]->rank = find_rank_byname(proc_infos, buf_read->name, nb_procs);
+    proc_infos[i]->fd_sock_init = fd_sock_init;
+    proc_infos[i]->bool_init = 1;
+    printf("%d\n", proc_infos[i]->rank);
 
-    int rank = find_rank_byname(proc_infos, buf_read->name, nb_procs);
-    printf("%d\n", rank);
+    /*  On recupere le nom de la machine distante */
+    /* 1- d'abord la taille de la chaine */
+    /* 2- puis la chaine elle-meme */
 
+    /* On recupere le pid du processus distant  */
 
-	/*  On recupere le nom de la machine distante */
-	/* 1- d'abord la taille de la chaine */
-	/* 2- puis la chaine elle-meme */
+    /* On recupere le numero de port de la socket */
+    /* d'ecoute des processus distants */
+  }
+  for (int j = 0; j < nb_procs; j++) {
+    /* envoi du nombre de processus aux processus dsm*/
+    int sent = 0;
+    int to_send = sizeof(int);
+    do {
+      sent += write(proc_infos[j]->fd_sock_init, &nb_procs, sizeof(int));
+    } while(sent != to_send);
+    printf(">>>>>>>>[dsmexec] envoi 2 OK\n");
+    fflush(stdout);
 
-	/* On recupere le pid du processus distant  */
+    /* envoi des rangs aux processus dsm */
+    sent = 0;
+    to_send = sizeof(int);
+    int compteur =0;
+    do {
 
-	/* On recupere le numero de port de la socket */
-	/* d'ecoute des processus distants */
-     }
+      sent += write(proc_infos[j]->fd_sock_init, &(proc_infos[j]->rank), sizeof(int));
+    } while(sent != to_send);
+    printf(">>>>>>>>[dsmexec] envoi 1 OK\n");
+    fflush(stdout);
 
-     /* envoi du nombre de processus aux processus dsm*/
+    /* envoi des infos de connexion aux processus */
+    info_init_dsmwrap_t * info_init_dsmwrap;
+    info_init_dsmwrap = malloc(sizeof(info_init_dsmwrap));
+    for (int k = 0; k < nb_procs; k++) {
 
-     /* envoi des rangs aux processus dsm */
+      strcpy(info_init_dsmwrap->IP, proc_infos[k]->IP);
+      info_init_dsmwrap->port = proc_infos[k]->port_ecoute;
+      int sent_info_init_dsmwrap = 0;
+      to_send = sizeof(info_init_dsmwrap_t);
+      do {
+        sent_info_init_dsmwrap += write(proc_infos[j]->fd_sock_init, info_init_dsmwrap, sizeof(info_init_dsmwrap_t));
+      } while(sent_info_init_dsmwrap != to_send);
 
-     /* envoi des infos de connexion aux processus */
+    }
+    printf(">>>>>>>>[dsmwrdsmexecap] envoi 3 OK\n");
+    fflush(stdout);
+  }
+  /* gestion des E/S : on recupere les caracteres */
+  /* sur les tubes de redirection de stdout/stderr */
+  /* while(1)
+  {
+  je recupere les infos sur les tubes de redirection
+  jusqu'à ce qu'ils soient inactifs (ie fermes par les
+  processus dsm ecrivains de l'autre cote ...)
+  int timeout = 3 * 60 * 1000;
+  poll(poll_set, nfds, timeout);
+};
+*/
 
-     /* gestion des E/S : on recupere les caracteres */
-     /* sur les tubes de redirection de stdout/stderr */
-     /* while(1)
-         {
-            je recupere les infos sur les tubes de redirection
-            jusqu'à ce qu'ils soient inactifs (ie fermes par les
-            processus dsm ecrivains de l'autre cote ...)
-            int timeout = 3 * 60 * 1000;
-            poll(poll_set, nfds, timeout);
-         };
-      */
+/* on attend les processus fils  pour éviter les processus zombies*/
+wait(NULL);
+wait(NULL);
+wait(NULL);
 
-     /* on attend les processus fils  pour éviter les processus zombies*/
+/* on ferme les descripteurs proprement */
 
-
-     /* on ferme les descripteurs proprement */
-
-     /* on ferme la socket d'ecoute */
-  //}
-   exit(EXIT_SUCCESS);
+/* on ferme la socket d'ecoute */
+//}
+exit(EXIT_SUCCESS);
 }
