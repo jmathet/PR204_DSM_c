@@ -43,6 +43,7 @@ typedef struct info_init info_init_t;
 struct info_init_dsmwrap {
   char IP[LENGTH_IP_ADDR];
   int port;
+  int rank;
 };
 typedef struct info_init_dsmwrap info_init_dsmwrap_t;
 
