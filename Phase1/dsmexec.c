@@ -131,8 +131,8 @@ int main(int argc, char *argv[])
       /* Creation du tableau d'arguments pour le ssh */
 
       /* jump to new prog : */
-      arg_ssh[0] = "/home/julien/Projets/PR204/Phase1/bin/dsmwrap";
-      int exec_res = execlp("ssh", "ssh", "julien@localhost", arg_ssh[0], arg_ssh[1], arg_ssh[2], NULL);
+      arg_ssh[0] = "/home/gregory/Documents/PR204/Phase1/bin/dsmwrap";
+      int exec_res = execlp("ssh", "ssh", "gregory@localhost", arg_ssh[0], arg_ssh[1], arg_ssh[2], NULL);
 
       if (exec_res == -1) {
         perror("exec");
