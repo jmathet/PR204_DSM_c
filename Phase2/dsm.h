@@ -5,7 +5,7 @@
 #include <pthread.h>
 #include <unistd.h>
 #include <sys/mman.h>
-
+#include "common_impl.h"
 
 
 /* fin des includes */
@@ -17,24 +17,24 @@
 
 typedef enum
 {
-   NO_ACCESS, 
+   NO_ACCESS,
    READ_ACCESS,
-   WRITE_ACCESS, 
-   UNKNOWN_ACCESS 
+   WRITE_ACCESS,
+   UNKNOWN_ACCESS
 } dsm_page_access_t;
 
 typedef enum
-{   
+{
    INVALID,
    READ_ONLY,
    WRITE,
-   NO_CHANGE  
+   NO_CHANGE
 } dsm_page_state_t;
 
 typedef int dsm_page_owner_t;
 
 typedef struct
-{ 
+{
    dsm_page_state_t status;
    dsm_page_owner_t owner;
 } dsm_page_info_t;
