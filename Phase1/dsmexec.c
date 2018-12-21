@@ -4,10 +4,6 @@
 
 /* variables globales */
 
-/* un tableau gerant les infos d'identification */
-/* des processus dsm */
-//dsm_proc_t *proc_array = NULL;
-
 /* le nombre de processus effectivement crees */
 volatile int num_procs_creat = 0;
 
@@ -20,8 +16,9 @@ void usage(void)
 
 void sigchld_handler(int sig)
 {
-  /* on traite les fils qui se terminent */
-  /* pour eviter les zombies */
+  wait(NULL);
+  printf("!!! Un fils vient de se terminer !!!\n");
+  fflush(stdout);
 }
 
 int get_nb_machines(FILE *fd){
@@ -37,18 +34,36 @@ int get_nb_machines(FILE *fd){
 
 int main(int argc, char *argv[])
 {
-  //if (argc < 3){
+  //if (argc < 3)
   //usage();
-  //} else {
 
   /* ETAPE 0 : Mise en place d'un traitant pour recuperer les fils zombies*/
   /* XXX.sa_handler = sigchld_handler; */
+  struct sigaction *act = malloc(sizeof(struct sigaction));  //déclaration et initialisation de la structure sigaction
+  act->sa_handler = &sigchld_handler;
+  act->sa_flags = SA_SIGINFO;
+  sigset_t *set;
+  sigset_t *oldset;
+
+  sigemptyset(set);
+  if (sigaddset(set, SIGSEGV)==-1) {
+    perror("erreur sigaddset");
+    exit(0);
+  }
+
+  if (sigprocmask(SIG_BLOCK, set, oldset)==-1) {
+    perror("erreur sigprocmask SIG_BLOCK");
+    exit(0);
+  }
+
+  //appels fonctions sigactions
+  sigaction(SIGCHLD, act, NULL);
 
   /* ETAPE 1 : Lecture du nombre de ligne dans le machine_file passé en argument pour connaître le nombre et le nom des machines */
   FILE * fd_machine_file;
   fd_machine_file = fopen(argv[1], "r");
   if (fd_machine_file == NULL)
-    error("error fd open");
+  error("error fd open");
 
   int nb_procs = get_nb_machines(fd_machine_file);
   char * machines[nb_procs];
@@ -80,7 +95,6 @@ int main(int argc, char *argv[])
   arg_ssh[1]=malloc(sizeof(int));
   arg_ssh[2]=malloc(20*sizeof(char));
 
-  //int enable=1; // used for setsockopt UNUSED
 
   // SET UP
   sock = creer_socket_serv(serv_port,serv_addr);
@@ -94,74 +108,58 @@ int main(int argc, char *argv[])
   /* --------- FIN ETAPE 2 ------------- */
 
   /* ETAPE 3 : création des fils (fork) et  gestion des redirections */
-  struct pollfd poll_set[6];
-  int nfds = 0;
-  memset(poll_set, 0, sizeof(struct pollfd));
+  int pipefd_stderr[nb_procs][2];
+  int pipefd_stdout[nb_procs][2];
+
+  int timeout=-1;
+  struct pollfd poll_set[2*nb_procs];
   /* creation des fils */
   for(int i = 0; i < nb_procs ; i++) {
 
     /* creation du tube pour rediriger stdout */
-    int pipefd_stdout[2];
-    if (pipe(pipefd_stdout)==-1){
-      perror("pipe stdout");
-      exit(EXIT_FAILURE);
-    }
+    if (pipe(pipefd_stdout[i])==-1) error("pipe stdout");
 
     /* creation du tube pour rediriger stderr */
-    int pipefd_stderr[2];
-    if (pipe(pipefd_stderr)==-1){
-      perror("pipe stderr");
-      exit(EXIT_FAILURE);
-    }
+    if (pipe(pipefd_stderr[i])==-1) error("pipe stderr");
 
     pid_t pid = fork();
-    nfds++;
-    if(pid == -1) ERROR_EXIT("fork");
+    if(pid == -1) error("fork");
 
     if (pid == 0) { /* fils */
       /* redirection stdout */
-      /*close(STDOUT_FILENO);
-      dup(pipefd_stdout[1]);*/
+      close(STDOUT_FILENO);
+      dup(pipefd_stdout[i][1]);
+      close(pipefd_stdout[i][0]);
 
       /* redirection stderr */
-      /*close(STDERR_FILENO);
-      dup(pipefd_stderr[1]);
-      close(pipefd_stderr[0]);*/
+      close(STDERR_FILENO);
+      dup(pipefd_stderr[i][1]);
+      close(pipefd_stderr[i][0]);
 
       /* Creation du tableau d'arguments pour le ssh */
 
       /* jump to new prog : */
-      arg_ssh[0] = "/home/gregory/Documents/PR204/Phase1/bin/dsmwrap";
-      int exec_res = execlp("ssh", "ssh", "gregory@localhost", arg_ssh[0], arg_ssh[1], arg_ssh[2], NULL);
+      arg_ssh[0] = "/home/julien/Projets/PR204/Phase1/bin/dsmwrap";
+      int exec_res = execlp("ssh", "ssh", "julien@localhost", arg_ssh[0], arg_ssh[1], arg_ssh[2], NULL);
 
-      if (exec_res == -1) {
-        perror("exec");
-        exit(EXIT_FAILURE);
-
-      }
+      if (exec_res == -1) error("exec");
 
     } else  if(pid > 0) { /* pere */
-      poll_set[i].fd =pipefd_stdout[0];
-      poll_set[i].events =POLLIN;
-      poll_set[i+1].fd =pipefd_stderr[0];
-      poll_set[i+1].events =POLLIN;
-
-
-      /* fermeture des extremites des tubes non utiles INTUTILE POUR LE MOMENT */
-      close(pipefd_stderr[1]);
-      close(pipefd_stdout[1]);
-      /* lecture dans les pipes */
-      char buffer[100];
-      memset(buffer, 0, 100);
-      read(pipefd_stdout[0], buffer, 100);
-      printf("lu : %s\n", buffer);
+      /* fermeture des extremites des tubes non utiles */
+      close(pipefd_stderr[i][1]);
+      close(pipefd_stdout[i][1]);
+      /* sockage des fd pour lecture futur dans les pipes */
+      poll_set[i].fd=pipefd_stdout[i][0];
+      poll_set[i].events=POLLIN;
+      poll_set[2*i].fd=pipefd_stderr[i][0];
+      poll_set[2*i].events=POLLIN;
       num_procs_creat++;
     } // END else if /* père */
   }
   /* ------- FIN ETAPE 3 -------- */
-  
+
   /* ETAPE 4 : le père accepte toutes les connexions de ses fils
-    puis récupère les infos tranmises et les redistribues à tout le monde */
+  puis récupère les infos tranmises et les redistribues à tout le monde */
   struct sockaddr_in client_addr;
   for(int i = 0; i < nb_procs ; i++){
 
@@ -175,7 +173,7 @@ int main(int argc, char *argv[])
     buf_read= malloc(sizeof(info_init_t));
     int test_read = read(fd_sock_init, buf_read, sizeof(info_init_t));
     if (test_read < 0)
-      error("read");
+    error("read");
     printf("[dsmexec]  nom machine : %s // port socket ecoute : %d \n",buf_read->name, buf_read->port );
     printf("@IP = %s\n",inet_ntoa(client_addr.sin_addr));
     fflush(stdout);
@@ -186,15 +184,6 @@ int main(int argc, char *argv[])
     proc_infos[i]->fd_sock_init = fd_sock_init;
     proc_infos[i]->bool_init = 1;
     printf("%d\n", proc_infos[i]->rank);
-
-    /*  On recupere le nom de la machine distante */
-    /* 1- d'abord la taille de la chaine */
-    /* 2- puis la chaine elle-meme */
-
-    /* On recupere le pid du processus distant  */
-
-    /* On recupere le numero de port de la socket */
-    /* d'ecoute des processus distants */
   }
   for (int j = 0; j < nb_procs; j++) {
     /* envoi du nombre de processus aux processus dsm*/
@@ -231,25 +220,52 @@ int main(int argc, char *argv[])
   }
   /* gestion des E/S : on recupere les caracteres */
   /* sur les tubes de redirection de stdout/stderr */
-  /* while(1)
-  {
-
-  je recupere les infos sur les tubes de redirection
+  /*je recupere les infos sur les tubes de redirection
   jusqu'à ce qu'ils soient inactifs (ie fermes par les
-  processus dsm ecrivains de l'autre cote ...)
-  int timeout = 3 * 60 * 1000;
-  poll(poll_set, nfds, timeout);
-};
-*/
+  processus dsm ecrivains de l'autre cote ...)*/
+  /* lecture dans les pipes */
+  char* buffer;
+  int read_ok;
+  buffer = malloc(1000);
+  int time_execution = 0;
+  while (time_execution<1000){
+    int polling=poll(poll_set,nb_procs,timeout);
+    if (polling<0){
+      perror("poll\n");
+    }
+    if (polling==0){
+      printf(" poll() timed out. End program.\n");
+    }
+    for (int i = 0 ; i < nb_procs ; i++){
+      if(poll_set[i].revents==POLLHUP){
+        poll_set[i].fd = -1;
+        poll_set[nb_procs+i].fd = -1;
+      }
+      else if (poll_set[i].revents==POLLIN){
+        memset(buffer, 0, 1000);
+        do {
+          read_ok = read(poll_set[i].fd, buffer, 1000);
+          if (read_ok==-1) error("read error");
+          printf("%s", buffer);
+          fflush(stdout);
+        } while(read_ok<1);
+      }
+      else if (poll_set[nb_procs+i].revents==POLLIN){
+        memset(buffer, 0, 1000);
+        do {
+          read_ok = read(poll_set[nb_procs+i].fd, buffer, 1000);
+          if (read_ok==-1) error("read error");
+          printf("%s", buffer);
+          fflush(stdout);
+        } while(read_ok<1);
+      }
+    }
+    time_execution++;
+  }
 
-/* on attend les processus fils  pour éviter les processus zombies*/
-wait(NULL);
-wait(NULL);
-wait(NULL);
+  /* on ferme les descripteurs proprement */
 
-/* on ferme les descripteurs proprement */
-
-/* on ferme la socket d'ecoute */
-//}
-exit(EXIT_SUCCESS);
+  /* on ferme la socket d'ecoute */
+  //}
+  exit(EXIT_SUCCESS);
 }

@@ -2,6 +2,7 @@
 
 void error(char* error_description){
   perror(error_description);
+  fflush(stdout);
   exit(EXIT_FAILURE);
 }
 
@@ -110,4 +111,14 @@ int find_rank_byname(dsm_proc_distant_t *proc_infos[], char *name, int nb_proc){
     }
   }
   return 0;
+}
+
+int printf_read(char* begin_of_print, char* end_of_print){
+  char * to_print;
+  to_print = malloc(SIZE_STRING_READ);
+  int print = sizeof(end_of_print - begin_of_print);
+  strncpy(to_print, begin_of_print, print);
+  printf(to_print);
+  fflush(stdout);
+  return print;
 }

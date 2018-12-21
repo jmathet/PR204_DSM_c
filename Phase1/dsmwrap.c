@@ -95,11 +95,11 @@ int main(int argc, char **argv)
   struct pollfd poll_set[nb_procs];
   char *message = malloc(20*sizeof(char));
   strcpy(message,"coucou");
+
   /* SOCKET de communication avec les autres processus DMS : SET-UP declarations */
   struct sockaddr_in serv_addr_connexion;
   int sock;
   for (int j = 0; j <nb_procs; j++) {
-    printf("====>%d\n",infos_init_dsmwrap[j]->rank);
     if (infos_init_dsmwrap[j]->rank > myrank) {
       sock = do_socket();
       init_client_addr(&serv_addr_connexion, infos_init_dsmwrap[j]->IP, infos_init_dsmwrap[j]->port);
@@ -118,10 +118,11 @@ int main(int argc, char **argv)
     poll_set[j].events=POLLIN;
   }
 
-  /* POLL d'écoute des sockets connectés au autres processus distant*/
-  char *msg1;
+  /* POLL d'écoute des sockets connectés au autres processus distant */
+  /*char *msg1;
   msg1 = malloc(4);
-  while (1){
+  int time_execution = 0;
+  while (time_execution<1000){
     int polling=poll(poll_set,nb_procs,timeout);
     if (polling<0){
       perror("poll\n");
@@ -129,14 +130,16 @@ int main(int argc, char **argv)
     if (polling==0){
       printf(" poll() timed out. End program.\n");
     }
-    for (int i=1;i<=nb_procs;i++){
+    for (int i=0;i<nb_procs;i++){
       if (poll_set[i].revents==POLLIN && i!=myrank){
         read(poll_set[1].fd,msg1,4);
         printf("Bien lu :%s", msg1);
       }
     }
-  }
-
+    time_execution++;
+  }*/
+  printf("FINNN\n");
+  fflush(stdout);
   /* on execute la bonne commande */
   return 0;
 }
