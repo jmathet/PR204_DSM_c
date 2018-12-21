@@ -1,4 +1,6 @@
+
 #include "common_impl.h"
+
 
 int main(int argc, char **argv)
 {
@@ -19,6 +21,7 @@ int main(int argc, char **argv)
   strncpy(host_ip, argv[2], 10);
   int host_port = atoi(argv[1]);
   int sock_initialisation;
+
 
   /* SOCKET d'initialisation SET-UP construction */
   sock_initialisation = do_socket();
@@ -57,19 +60,27 @@ int main(int argc, char **argv)
   } while(sent != to_send);
 
   /* on execute la bonne commande */
-  char arg_dsm_init[3];
-  arg_dsm_init[1]=malloc(sizeof(int));
-  arg_dsm_init[2]=malloc(sizeof(int));
-  arg_dsm_init[0]=malloc(44*sizeof(char));
-  arg_dsm_init[0] = "/home/gregory/Documents/PR204/Phase1/bin/dsm";
+  char *arg_dsm_init[3];
+  arg_dsm_init[1]=malloc(sizeof(char));
+  arg_dsm_init[2]=malloc(sizeof(char));
+  arg_dsm_init[0] = "/home/gregory/Documents/PR204/Phase2/bin/test";
+
+  /*char SOCK_ECOUTE[3];
+  char SOCK_INITIALISATION[3];
+  memset(SOCK_ECOUTE,0,3);
+  memset(SOCK_INITIALISATION,0,3);*/
   sprintf(arg_dsm_init[1],"%d",sock_initialisation);
-  sprintf(arg_dsm_init[2],"%d",sock_ecoute);
-  int exec_res = execlp("ssh", "ssh", "gregory@localhost", arg_dsm_init[0], arg_dsm_init[1],arg_dsm_init[2], NULL);
+//sprintf(SOCK_INITIALISATION,"%d",sock_initialisation);
+//  putenv(SOCK_INITIALISATION);
+  //sprintf(arg_dsm_init[2],"%d\n",sock_ecoute);
+//  sprintf(SOCK_ECOUTE,"%d",sock_ecoute);
+//  putenv(SOCK_ECOUTE);
+  int exec_res =execlp(arg_dsm_init[0],arg_dsm_init[1],arg_dsm_init[2],NULL);
 
   if (exec_res == -1) {
     perror("exec");
     exit(EXIT_FAILURE);
-
   }
+;
   return 0;
 }

@@ -131,7 +131,7 @@ int main(int argc, char *argv[])
       /* Creation du tableau d'arguments pour le ssh */
 
       /* jump to new prog : */
-      arg_ssh[0] = "/home/gregory/Documents/PR204/Phase1/bin/dsmwrap";
+      arg_ssh[0] = "/home/gregory/Documents/PR204/Phase2/bin/dsmwrap";
       int exec_res = execlp("ssh", "ssh", "gregory@localhost", arg_ssh[0], arg_ssh[1], arg_ssh[2], NULL);
 
       if (exec_res == -1) {
@@ -212,7 +212,7 @@ int main(int argc, char *argv[])
     } while(sent != to_send);
 
     /* envoi des infos de connexion aux processus */
-    info_init_dsmwrap_t * info_init_dsmwrap;
+    infos_dsm_t * info_init_dsmwrap;
     info_init_dsmwrap = malloc(sizeof(info_init_dsmwrap));
     for (int k = 0; k < nb_procs; k++) {
 
@@ -220,9 +220,9 @@ int main(int argc, char *argv[])
       info_init_dsmwrap->port = proc_infos[k]->port_ecoute;
       info_init_dsmwrap->rank = proc_infos[k]->rank;
       int sent_info_init_dsmwrap = 0;
-      to_send = sizeof(info_init_dsmwrap_t);
+      to_send = sizeof(infos_dsm_t);
       do {
-        sent_info_init_dsmwrap += write(proc_infos[j]->fd_sock_init, info_init_dsmwrap, sizeof(info_init_dsmwrap_t));
+        sent_info_init_dsmwrap += write(proc_infos[j]->fd_sock_init, info_init_dsmwrap, sizeof(infos_dsm_t));
       } while(sent_info_init_dsmwrap != to_send);
 
     }
@@ -251,5 +251,6 @@ wait(NULL);
 
 /* on ferme la socket d'ecoute */
 //}
+
 exit(EXIT_SUCCESS);
 }
