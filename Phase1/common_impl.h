@@ -17,6 +17,7 @@
 #define NB_MAX_PROC 50
 #define LENGTH_NAME_MAX 50
 #define LENGTH_IP_ADDR 10
+#define SIZE_STRING_READ 1000
 
 #define ERROR_EXIT(str) {perror(str);exit(EXIT_FAILURE);}
 
@@ -70,3 +71,5 @@ int do_accept(int socket, struct sockaddr *addr, socklen_t* addrlen);
 void do_connect(int sock, struct sockaddr_in host_addr);
 
 int find_rank_byname(dsm_proc_distant_t *proc_infos[], char *name, int nb_proc);
+
+int printf_read(char* begin_of_print, char* end_of_print);

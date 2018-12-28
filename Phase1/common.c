@@ -2,6 +2,7 @@
 
 void error(char* error_description){
   perror(error_description);
+  fflush(stdout);
   exit(EXIT_FAILURE);
 }
 

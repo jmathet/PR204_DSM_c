@@ -1,0 +1,50 @@
+SAUVEGARDE DE DSMWRAP AVEC POLL ET SOCKET DE COMMUNICATION INTER-PROCESSUS
+
+/*definition des variables nécessaires au poll*/
+int timeout=-1;
+struct pollfd poll_set[nb_procs];
+char *message = malloc(20*sizeof(char));
+strcpy(message,"coucou");
+
+/* SOCKET de communication avec les autres processus DMS : SET-UP declarations */
+struct sockaddr_in serv_addr_connexion;
+int sock;
+for (int j = 0; j <nb_procs; j++) {
+  if (infos_init_dsmwrap[j]->rank > myrank) {
+    sock = do_socket();
+    init_client_addr(&serv_addr_connexion, infos_init_dsmwrap[j]->IP, infos_init_dsmwrap[j]->port);
+    do_connect(sock, serv_addr_connexion);
+    printf(">>>>>>>[dsmwrap] connexion ok : %d\n", sock);
+    fflush(stdout);
+  }
+  else if (infos_init_dsmwrap[j]->rank != myrank){
+    printf(">>>>>>>[dsmwrap%d] accept début %d\n",myrank, infos_init_dsmwrap[j]->rank );
+    fflush(stdout);
+    sock = do_accept(sock_ecoute, (struct sockaddr*)serv_addr_ecoute, &addrlen);
+    printf(">>>>>>>[dsmwrap] accept fin : %d\n", sock);
+    fflush(stdout);
+  }
+  poll_set[j].fd=sock;
+  poll_set[j].events=POLLIN;
+};*/
+
+/* POLL d'écoute des sockets connectés au autres processus distant */
+/*char *msg1;
+msg1 = malloc(4);
+int time_execution = 0;
+while (time_execution<1000){
+  int polling=poll(poll_set,nb_procs,timeout);
+  if (polling<0){
+    perror("poll\n");
+  }
+  if (polling==0){
+    printf(" poll() timed out. End program.\n");
+  }
+  for (int i=0;i<nb_procs;i++){
+    if (poll_set[i].revents==POLLIN && i!=myrank){
+      read(poll_set[1].fd,msg1,4);
+      printf("Bien lu :%s", msg1);
+    }
+  }
+  time_execution++;
+}*/
