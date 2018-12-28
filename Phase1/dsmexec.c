@@ -14,11 +14,13 @@ void usage(void)
   exit(EXIT_FAILURE);
 }
 
+/* Traitant de signal permettant la bonne terminaison des fils lors de la réception d'un sigchld. */
 void sigchld_handler(int sig)
 {
   wait(NULL);
   printf("!!! Un fils vient de se terminer !!!\n");
   fflush(stdout);
+  num_procs_creat--;
 }
 
 int get_nb_machines(FILE *fd){
@@ -220,26 +222,35 @@ int main(int argc, char *argv[])
   char* buffer;
   int read_ok;
   buffer = malloc(1000);
-  int time_execution = 0;
-  while (time_execution<1000){
-    int polling=poll(poll_set,nb_procs,timeout);
+
+  while (num_procs_creat>0){
+    int polling=0;
+    do {
+      polling = poll(poll_set,nb_procs,timeout);
+    } while ((polling == -1) && (errno == EINTR));
     if (polling<0){
-      perror("poll\n");
+      error("poll");
     }
     if (polling==0){
       printf(" poll() timed out. End program.\n");
     }
-    for (int i = 0 ; i < nb_procs ; i++){
-      if(poll_set[i].revents==POLLHUP){
-        poll_set[i].fd = -1;
-        poll_set[nb_procs+i].fd = -1;
+    for (int i = 0 ; i < nb_procs ; i++){ // Pour chaque tube
+
+      if(poll_set[i].revents==POLLHUP){ // En cas de fermeture d'un tube
+        printf("fermeture %d\n",i );
+        fflush(stdout);
+        poll_set[i].fd = -1; // Fermeture du file descriptor correspondant à stdout
+        poll_set[nb_procs+i].fd = -1; // Fermeture du file descriptor correspondant à stderr
       }
-      else if (poll_set[i].revents==POLLIN){
+      else if (poll_set[i].revents==POLLIN){ // En cas d'activité sur un tube
+        printf("lecture %d\n",i );
+        fflush(stdout);
         memset(buffer, 0, 1000);
         do {
           read_ok = read(poll_set[i].fd, buffer, 1000);
-          if (read_ok==-1) error("read error");
-          printf("%s", buffer);
+          if (read_ok==-1)
+            error("read error");
+          printf("[Processus %d - sdtout] %s", i+1, buffer);
           fflush(stdout);
         } while(read_ok<1);
       }
@@ -247,13 +258,13 @@ int main(int argc, char *argv[])
         memset(buffer, 0, 1000);
         do {
           read_ok = read(poll_set[nb_procs+i].fd, buffer, 1000);
-          if (read_ok==-1) error("read error");
-          printf("%s", buffer);
+          if (read_ok==-1)
+            error("read error");
+          printf("[Processus %d - stderr] %s", i+1, buffer);
           fflush(stdout);
         } while(read_ok<1);
       }
     }
-    time_execution++;
   }
 
   /* on ferme les descripteurs proprement */
