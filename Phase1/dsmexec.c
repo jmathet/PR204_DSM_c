@@ -227,13 +227,14 @@ int main(int argc, char *argv[])
     int polling=0;
     do {
       polling = poll(poll_set,nb_procs,timeout);
-    } while ((polling == -1) && (errno == EINTR));
-    if (polling<0){
+    } while ((polling == -1) && (errno == EINTR) && (num_procs_creat>0));
+    if (polling<0 && num_procs_creat==0)
+      polling=0;
+    else if (polling<0)
       error("poll");
-    }
-    if (polling==0){
+    else if (polling==0)
       printf(" poll() timed out. End program.\n");
-    }
+
     for (int i = 0 ; i < nb_procs ; i++){ // Pour chaque tube
       if(poll_set[i].revents==POLLHUP){ // En cas de fermeture d'un tube
         poll_set[i].fd = -1; // Fermeture du file descriptor correspondant à stdout

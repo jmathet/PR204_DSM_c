@@ -121,7 +121,7 @@ int main(int argc, char **argv)
 
   printf("FINNN\n");
   fflush(stdout);
-  sleep(myrank*2);
+  sleep(myrank*3);
   /* on execute la bonne commande */
   return 0;
 }
