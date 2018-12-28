@@ -19,14 +19,17 @@ int main(int argc, char **argv)
   strncpy(host_ip, argv[2], 10);
   int host_port = atoi(argv[1]);
   int sock_initialisation;
+  char hostname[1024];
+  int nb_procs;
 
   /* SOCKET d'initialisation SET-UP construction */
   sock_initialisation = do_socket();
   init_client_addr(&serv_addr, host_ip, host_port);
   do_connect(sock_initialisation, serv_addr); // connexion à dsmexec (socket d'initialisation)
 
+  free(host_ip); // Libération de ressources intiles
+
   /* Récupration du nom de la machine pour l'envoyer au lanceur */
-  char hostname[1024];
   gethostname(hostname, 1024);
 
   /* Creation de la socket d'ecoute (port et IP aléatoires) pour les */
@@ -35,12 +38,16 @@ int main(int argc, char **argv)
   struct sockaddr_in *serv_addr_ecoute=malloc(sizeof(struct sockaddr_in));
   socklen_t addrlen = sizeof(struct sockaddr);
   int *serv_port = malloc(sizeof(int));
+  int port;
+  int sent = 0;
+  int to_send = sizeof(info_init_t);
 
   sock_ecoute = creer_socket_serv(serv_port,serv_addr_ecoute);
   do_listen(sock_ecoute, NB_MAX_PROC);
 
+  free(serv_port); // Libération de ressources intiles
+
   /* Récupération du n° de port de la socket */
-  int port;
   socklen_t len = sizeof(struct sockaddr_in);
   getsockname(sock_ecoute, (struct sockaddr *) serv_addr_ecoute, &len);
   port = ntohs(serv_addr_ecoute->sin_port);
@@ -49,17 +56,16 @@ int main(int argc, char **argv)
   info_init_t *info_init = malloc(sizeof(info_init_t));
   strcpy(info_init->name, hostname);
   info_init->port = port;
-
-  int sent = 0;
-  int to_send = sizeof(info_init_t);
   do {
-    sent +=    write(sock_initialisation, info_init, sizeof(info_init_t));
+    sent += write(sock_initialisation, info_init, sizeof(info_init_t));
   } while(sent != to_send);
+
+  free(info_init); // Libération de ressources intiles
 
   /* Lecture du nombre de processus dsm */
   printf("[dsmwrap] début lecture\n");
   fflush(stdout);
-  int nb_procs;
+
   int test_read_nbprocs = read(sock_initialisation, &nb_procs, sizeof(int));
   if (test_read_nbprocs < 0) {
     error("read nbprocs");
@@ -77,24 +83,13 @@ int main(int argc, char **argv)
   fflush(stdout);
 
   /* Lecture des infos (port + IP) nécessaires aux connexions aux tres processus dsm */
-  int fd_procs[nb_procs];
   info_init_dsmwrap_t * infos_init_dsmwrap[nb_procs];
   info_dsmwrap_init(infos_init_dsmwrap, nb_procs);
   for (int i = 0; i < nb_procs; i++) {
     int test_info_init_dsmwrap = read(sock_initialisation, infos_init_dsmwrap[i], sizeof(info_init_dsmwrap_t));
-    if (test_info_init_dsmwrap < 0) {
+    if (test_info_init_dsmwrap < 0)
       error("read info_init_dsmwrap");
-    }
-    //printf("%d\n",infos_init_dsmwrap[i]->port );
-    //printf("%d\n",infos_init_dsmwrap[i]->rank );
-    //printf("%s\n",infos_init_dsmwrap[i]->IP );
-    //fflush(stdout);
   }
-  /*definition des variables nécessaires au poll*/
-  int timeout=-1;
-  struct pollfd poll_set[nb_procs];
-  char *message = malloc(20*sizeof(char));
-  strcpy(message,"coucou");
 
   /* SOCKET de communication avec les autres processus DMS : SET-UP declarations */
   struct sockaddr_in serv_addr_connexion;
@@ -104,42 +99,28 @@ int main(int argc, char **argv)
       sock = do_socket();
       init_client_addr(&serv_addr_connexion, infos_init_dsmwrap[j]->IP, infos_init_dsmwrap[j]->port);
       do_connect(sock, serv_addr_connexion);
-      printf(">>>>>>>[dsmwrap] connexion ok : %d\n", sock);
+      printf("[dsmwrap] connexion ok : %d\n", sock);
       fflush(stdout);
     }
     else if (infos_init_dsmwrap[j]->rank != myrank){
-      printf(">>>>>>>[dsmwrap%d] accept début %d\n",myrank, infos_init_dsmwrap[j]->rank );
+      printf("[dsmwrap] accept début %d\n", infos_init_dsmwrap[j]->rank );
       fflush(stdout);
       sock = do_accept(sock_ecoute, (struct sockaddr*)serv_addr_ecoute, &addrlen);
-      printf(">>>>>>>[dsmwrap] accept fin : %d\n", sock);
+      printf("[dsmwrap] accept fin : %d\n", sock);
       fflush(stdout);
     }
-    poll_set[j].fd=sock;
-    poll_set[j].events=POLLIN;
   }
 
-  /* POLL d'écoute des sockets connectés au autres processus distant */
-  /*char *msg1;
-  msg1 = malloc(4);
-  int time_execution = 0;
-  while (time_execution<1000){
-    int polling=poll(poll_set,nb_procs,timeout);
-    if (polling<0){
-      perror("poll\n");
-    }
-    if (polling==0){
-      printf(" poll() timed out. End program.\n");
-    }
-    for (int i=0;i<nb_procs;i++){
-      if (poll_set[i].revents==POLLIN && i!=myrank){
-        read(poll_set[1].fd,msg1,4);
-        printf("Bien lu :%s", msg1);
-      }
-    }
-    time_execution++;
-  }*/
+  /* Libération des ressources */
+  free(serv_addr_ecoute);
+  close(sock_initialisation);
+  close(sock_ecoute);
+  close(sock);
+
+
   printf("FINNN\n");
   fflush(stdout);
+  sleep(myrank*2);
   /* on execute la bonne commande */
   return 0;
 }
