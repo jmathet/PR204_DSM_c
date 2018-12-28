@@ -13,9 +13,21 @@ void proc_infos_init(dsm_proc_distant_t *proc_infos[], int nb_procs){
   }
 }
 
+void proc_infos_clean(dsm_proc_distant_t *proc_infos[], int nb_procs){
+  for (int i = 0; i < nb_procs; i++) {
+    free(proc_infos[i]);
+    close(proc_infos[i]->fd_sock_init);
+  }
+}
+
 void info_dsmwrap_init(info_init_dsmwrap_t *infos_init_dsmwrap[], int nb_procs){
   for (int i = 0; i < nb_procs; i++)
-  infos_init_dsmwrap[i] = malloc(sizeof(info_init_dsmwrap_t));
+    infos_init_dsmwrap[i] = malloc(sizeof(info_init_dsmwrap_t));
+}
+
+void info_dsmwrap_clean(info_init_dsmwrap_t *infos_init_dsmwrap[], int nb_procs){
+  for (int i = 0; i < nb_procs; i++)
+    free(infos_init_dsmwrap[i]);
 }
 
 int creer_socket_serv(int *serv_port,struct sockaddr_in *serv_addr)
@@ -62,7 +74,7 @@ void init_serv_addr(struct sockaddr_in *serv_addr, int port)
 
 void init_client_addr(struct sockaddr_in *serv_addr, char *ip, int port) {
   // clean structure
-  memset(serv_addr, '\0', sizeof(*serv_addr));
+  memset(serv_addr, 0, sizeof(*serv_addr));
   serv_addr->sin_family = AF_INET; // IP V4
   serv_addr->sin_port = htons(port); // specified port in args
   serv_addr->sin_addr.s_addr = inet_addr(ip); // specified server IP in args
@@ -72,35 +84,32 @@ void do_bind(int socket, struct sockaddr_in addr_in)
 {
   int bind_result = bind(socket, (struct sockaddr *) &addr_in, sizeof(addr_in));
   if (-1 == bind_result)
-  error("bind");
+    error("bind");
 }
 
 void do_listen(int socket, int nb_max)
 {
   int listen_result = listen(socket, nb_max);
   if (-1 == listen_result)
-  error("listen");
+    error("listen");
 }
 
 int do_accept(int socket, struct sockaddr *addr, socklen_t* addrlen)
 {
   printf("[do_accept] début\n");
   int file_des_new = accept(socket, addr, addrlen);
-  printf("[do_accept] %d\n",file_des_new );
   if(-1 == file_des_new)
-  error("accept");
+    error("accept");
   return file_des_new;
 }
 
 void do_connect(int sock, struct sockaddr_in host_addr) {
   int connect_result;
-
   do {
     connect_result = connect(sock, (struct sockaddr *) &host_addr, sizeof(host_addr));
   } while ((connect_result == -1) && (errno == EAGAIN || errno == EINTR));
-
   if (connect_result == -1)
-  error("connect");
+    error("connect");
 }
 
 int find_rank_byname(dsm_proc_distant_t *proc_infos[], char *name, int nb_proc){

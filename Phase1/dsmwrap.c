@@ -116,6 +116,7 @@ int main(int argc, char **argv)
   close(sock_initialisation);
   close(sock_ecoute);
   close(sock);
+  info_dsmwrap_clean(infos_init_dsmwrap, nb_procs);
 
 
   printf("FINNN\n");

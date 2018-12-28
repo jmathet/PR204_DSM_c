@@ -5,7 +5,7 @@
 /* variables globales */
 
 /* le nombre de processus effectivement crees */
-volatile int num_procs_creat = 0;
+volatile sig_atomic_t num_procs_creat = 0;
 
 void usage(void)
 {
@@ -141,8 +141,8 @@ int main(int argc, char *argv[])
       /* sockage des fd pour lecture futur dans les pipes */
       poll_set[i].fd = pipefd_stdout[i][0];
       poll_set[i].events = POLLIN;
-      poll_set[2*i].fd = pipefd_stderr[i][0];
-      poll_set[2*i].events = POLLIN;
+      poll_set[nb_procs+i].fd = pipefd_stderr[i][0];
+      poll_set[nb_procs+i].events = POLLIN;
       num_procs_creat++;
     } // END else if /* père */
   }
@@ -235,16 +235,11 @@ int main(int argc, char *argv[])
       printf(" poll() timed out. End program.\n");
     }
     for (int i = 0 ; i < nb_procs ; i++){ // Pour chaque tube
-
       if(poll_set[i].revents==POLLHUP){ // En cas de fermeture d'un tube
-        printf("fermeture %d\n",i );
-        fflush(stdout);
         poll_set[i].fd = -1; // Fermeture du file descriptor correspondant à stdout
         poll_set[nb_procs+i].fd = -1; // Fermeture du file descriptor correspondant à stderr
       }
       else if (poll_set[i].revents==POLLIN){ // En cas d'activité sur un tube
-        printf("lecture %d\n",i );
-        fflush(stdout);
         memset(buffer, 0, 1000);
         do {
           read_ok = read(poll_set[i].fd, buffer, 1000);
@@ -273,7 +268,8 @@ int main(int argc, char *argv[])
     close(poll_set[nb_procs+i].fd);
   }
   free(buffer);
+  proc_infos_clean(proc_infos, nb_procs);
   /* on ferme la socket d'ecoute */
-
+  close(sock);
   exit(EXIT_SUCCESS);
 }

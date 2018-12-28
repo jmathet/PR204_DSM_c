@@ -52,7 +52,11 @@ void error(char* error_description);
 
 void proc_infos_init(dsm_proc_distant_t *proc_infos[], int nb_proc);
 
+void proc_infos_clean(dsm_proc_distant_t *proc_infos[], int nb_proc);
+
 void info_dsmwrap_init(info_init_dsmwrap_t *infos_init_dsmwrap[], int nb_procs);
+
+void info_dsmwrap_clean(info_init_dsmwrap_t *infos_init_dsmwrap[], int nb_procs);
 
 int creer_socket_serv(int *serv_port,struct sockaddr_in *serv_addr);
 
@@ -71,5 +75,3 @@ int do_accept(int socket, struct sockaddr *addr, socklen_t* addrlen);
 void do_connect(int sock, struct sockaddr_in host_addr);
 
 int find_rank_byname(dsm_proc_distant_t *proc_infos[], char *name, int nb_proc);
-
-int printf_read(char* begin_of_print, char* end_of_print);
