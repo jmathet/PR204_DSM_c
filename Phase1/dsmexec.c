@@ -18,8 +18,6 @@ void usage(void)
 void sigchld_handler(int sig)
 {
   wait(NULL);
-  printf("!!! Un fils vient de se terminer !!!\n");
-  fflush(stdout);
   num_procs_creat--;
 }
 

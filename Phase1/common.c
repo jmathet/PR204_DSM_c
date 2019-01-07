@@ -97,7 +97,10 @@ void do_listen(int socket, int nb_max)
 int do_accept(int socket, struct sockaddr *addr, socklen_t* addrlen)
 {
   printf("[do_accept] début\n");
-  int file_des_new = accept(socket, addr, addrlen);
+  int file_des_new;
+  do {
+    file_des_new = accept(socket, addr, addrlen);
+  } while((-1 == file_des_new) && (errno == EINTR));
   if(-1 == file_des_new)
     error("accept");
   return file_des_new;
