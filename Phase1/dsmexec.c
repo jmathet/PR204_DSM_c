@@ -244,7 +244,7 @@ int main(int argc, char *argv[])
           read_ok = read(poll_set[i].fd, buffer, 1000);
           if (read_ok==-1)
             error("read error");
-          printf("[Processus %d - sdtout] %s", i+1, buffer);
+          printf(">>[Processus %d - sdtout] %s", i+1, buffer);
           fflush(stdout);
         } while(read_ok<1);
       }
@@ -254,7 +254,7 @@ int main(int argc, char *argv[])
           read_ok = read(poll_set[nb_procs+i].fd, buffer, 1000);
           if (read_ok==-1)
             error("read error");
-          printf("[Processus %d - stderr] %s", i+1, buffer);
+          printf(">>[Processus %d - stderr] %s", i+1, buffer);
           fflush(stdout);
         } while(read_ok<1);
       }
