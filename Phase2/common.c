@@ -17,6 +17,18 @@ void info_dsmwrap_init(infos_dsm_t *infos_dsm[], int nb_procs){
   infos_dsm[i] = malloc(sizeof(infos_dsm_t));
 }
 
+void proc_infos_clean(dsm_proc_distant_t *proc_infos[], int nb_procs){
+  for (int i = 0; i < nb_procs; i++) {
+    free(proc_infos[i]);
+    close(proc_infos[i]->fd_sock_init);
+  }
+}
+
+void info_dsmwrap_clean(infos_dsm_t *infos_init_dsmwrap[], int nb_procs){
+  for (int i = 0; i < nb_procs; i++)
+    free(infos_init_dsmwrap[i]);
+}
+
 int creer_socket_serv(int *serv_port,struct sockaddr_in *serv_addr)
 {
   int fd;
@@ -84,7 +96,10 @@ void do_listen(int socket, int nb_max)
 int do_accept(int socket, struct sockaddr *addr, socklen_t* addrlen)
 {
   printf("[do_accept] début\n");
-  int file_des_new = accept(socket, addr, addrlen);
+  int file_des_new =-1;
+  do {
+     file_des_new = accept(socket, addr, addrlen);
+  } while( (-1==file_des_new) && (errno=EINTR)) ;
   printf("[do_accept] %d\n",file_des_new );
   if(-1 == file_des_new)
   error("accept");

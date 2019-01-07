@@ -6,9 +6,9 @@ int DSM_NODE_ID;
 int sock_ecoute ; /* rang (= numero) du processus */
 int sock_initialisation;
 
-void info_dsmwrap_init(infos_dsm_t *infos_dsm[], int nb_procs){
-  for (int i = 0; i < nb_procs; i++)
-  infos_dsm[i] = malloc(sizeof(infos_dsm_t));
+void info_dsmwrap_init(infos_dsm_t *infos_init[], int DSM_NODE_NUM){
+  for (int i = 0; i < DSM_NODE_NUM; i++)
+  infos_init[i] = malloc(sizeof(infos_dsm_t));
 }
 
 int creer_socket_serv(int *serv_port,struct sockaddr_in *serv_addr)
@@ -242,52 +242,22 @@ char *dsm_init(int argc, char **argv)
 {
    struct sigaction act;
    int index;
-   sock_ecoute=atoi(getenv("SOCK_ECOUTE"));
-   sock_initialisation=atoi(getenv("SOCK_INITIALISATION"));
-   printf("dsminit-------------->sock_ecoute=%d",sock_ecoute);
-   printf("dsminit-------------->sockinit=%d",sock_initialisation);
-   fflush(stdout);
-   //int sock_initialisation=atoi(argv[1]);
-  // int sock_ecoute=atoi(argv[2]);
-   /* reception du nombre de processus dsm envoye */
-   /* par le lanceur de programmes (DSM_NODE_NUM)*/
-   /* Lecture du nombre de processus dsm */
-   printf("[dsmwrap] début lecture\n");
-   fflush(stdout);
-   int test_read_nbprocs = read(sock_initialisation, &DSM_NODE_NUM, sizeof(int));
-   if (test_read_nbprocs < 0) {
-     error("read nbprocs");
-   }
-   printf("[dsmwrap] nbprocs = %d\n", DSM_NODE_NUM);
-   fflush(stdout);
-   /* reception de mon numero de processus dsm envoye */
-   /* par le lanceur de programmes (DSM_NODE_ID)*/
-   /* Lecture du rand du processus */
-   int test_read_rank = read(sock_initialisation, &DSM_NODE_ID, sizeof(int));
-   if (test_read_rank < 0) {
-     error("read rank");
-   }
-   printf("[dsmwrap] rank = %d\n", DSM_NODE_ID);
-   fflush(stdout);
-   /* reception des informations de connexion des autres */
-   /* processus envoyees par le lanceur : */
-   /* nom de machine, numero de port, etc. */
-   /* Lecture des infos (port + IP) nécessaires aux connexions aux tres processus dsm */
-   int fd_procs[DSM_NODE_NUM];
-   infos_dsm_t *infos_dsm[DSM_NODE_NUM];
-   info_dsmwrap_init(infos_dsm, DSM_NODE_NUM);
-   for (int i = 0; i < DSM_NODE_NUM; i++) {
-     int test_info_init_dsm = read(sock_initialisation, infos_dsm[i], sizeof(infos_dsm_t));
-     if (test_info_init_dsm < 0) {
-       error("read info_init_dsmwrap");
-     }
 
+   int sock_initialisation=atoi(argv[1]);
+   int sock_ecoute=atoi(argv[2]);
+   /* Lecture des infos (port + IP) nécessaires aux connexions aux tres processus dsm */
+   infos_dsm_t * infos_init[DSM_NODE_NUM];
+   info_dsmwrap_init(infos_init, DSM_NODE_NUM);
+   for (int i = 0; i < DSM_NODE_NUM; i++) {
+     int test_info_init_dsmwrap = read(sock_initialisation, infos_init[i], sizeof(infos_dsm_t));
+     if (test_info_init_dsmwrap < 0)
+       error("read info_init_dsmwrap");
    }
+
    /* initialisation des connexions */
    /* avec les autres processus : connect/accept */
    /*definition des variables nécessaires au poll*/
-   char *message = malloc(20*sizeof(char));
-   strcpy(message,"coucou");
+
    struct sockaddr_in *serv_addr_ecoute=malloc(sizeof(struct sockaddr_in));
    socklen_t addrlen = sizeof(struct sockaddr);
    int *serv_port = malloc(sizeof(int));
@@ -298,16 +268,16 @@ char *dsm_init(int argc, char **argv)
    struct sockaddr_in serv_addr_connexion;
    int sock;
    for (int j = 0; j <DSM_NODE_NUM; j++) {
-     printf("====>%d\n",infos_dsm[j]->rank);
-     if (infos_dsm[j]->rank > DSM_NODE_ID) {
+     printf("====>%d\n",infos_init[j]->rank);
+     if (infos_init[j]->rank > DSM_NODE_ID) {
        sock = do_socket();
-       init_client_addr(&serv_addr_connexion, infos_dsm[j]->IP, infos_dsm[j]->port);
+       init_client_addr(&serv_addr_connexion, infos_init[j]->IP, infos_init[j]->port);
        do_connect(sock, serv_addr_connexion);
        printf(">>>>>>>[dsm] connexion ok : %d\n", sock);
        fflush(stdout);
      }
-     else if (infos_dsm[j]->rank != DSM_NODE_ID){
-       printf(">>>>>>>[dsm%d] accept début %d\n",DSM_NODE_ID, infos_dsm[j]->rank );
+     else if (infos_init[j]->rank != DSM_NODE_ID){
+       printf(">>>>>>>[dsm%d] accept début %d\n",DSM_NODE_ID, infos_init[j]->rank );
        fflush(stdout);
        sock = do_accept(sock_ecoute, (struct sockaddr*)serv_addr_ecoute, &addrlen);
        printf(">>>>>>>[dsm] accept fin de  la fin : %d\n", sock);
@@ -338,9 +308,12 @@ char *dsm_init(int argc, char **argv)
    return ((char *)BASE_ADDR);
 }
 
-void dsm_finalize( void )
+void dsm_finalize(void)
 {
    /* fermer proprement les connexions avec les autres processus */
+   /* Libération des ressources */
+
+
 
    /* terminer correctement le thread de communication */
    /* pour le moment, on peut faire : */

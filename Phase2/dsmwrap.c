@@ -1,6 +1,4 @@
-
 #include "common_impl.h"
-
 
 int main(int argc, char **argv)
 {
@@ -21,15 +19,17 @@ int main(int argc, char **argv)
   strncpy(host_ip, argv[2], 10);
   int host_port = atoi(argv[1]);
   int sock_initialisation;
-
+  char hostname[1024];
+  int nb_procs;
 
   /* SOCKET d'initialisation SET-UP construction */
   sock_initialisation = do_socket();
   init_client_addr(&serv_addr, host_ip, host_port);
   do_connect(sock_initialisation, serv_addr); // connexion à dsmexec (socket d'initialisation)
 
+  free(host_ip); // Libération de ressources intiles
+
   /* Récupration du nom de la machine pour l'envoyer au lanceur */
-  char hostname[1024];
   gethostname(hostname, 1024);
 
   /* Creation de la socket d'ecoute (port et IP aléatoires) pour les */
@@ -38,12 +38,16 @@ int main(int argc, char **argv)
   struct sockaddr_in *serv_addr_ecoute=malloc(sizeof(struct sockaddr_in));
   socklen_t addrlen = sizeof(struct sockaddr);
   int *serv_port = malloc(sizeof(int));
+  int port;
+  int sent = 0;
+  int to_send = sizeof(info_init_t);
 
   sock_ecoute = creer_socket_serv(serv_port,serv_addr_ecoute);
   do_listen(sock_ecoute, NB_MAX_PROC);
 
+  free(serv_port); // Libération de ressources intiles
+
   /* Récupération du n° de port de la socket */
-  int port;
   socklen_t len = sizeof(struct sockaddr_in);
   getsockname(sock_ecoute, (struct sockaddr *) serv_addr_ecoute, &len);
   port = ntohs(serv_addr_ecoute->sin_port);
@@ -52,35 +56,59 @@ int main(int argc, char **argv)
   info_init_t *info_init = malloc(sizeof(info_init_t));
   strcpy(info_init->name, hostname);
   info_init->port = port;
-
-  int sent = 0;
-  int to_send = sizeof(info_init_t);
   do {
-    sent +=    write(sock_initialisation, info_init, sizeof(info_init_t));
+    sent += write(sock_initialisation, info_init, sizeof(info_init_t));
   } while(sent != to_send);
+
+  free(info_init); // Libération de ressources intiles
+
+  /* Lecture du nombre de processus dsm */
+  printf("[dsmwrap] début lecture\n");
+  fflush(stdout);
+
+  int test_read_nbprocs = read(sock_initialisation, &nb_procs, sizeof(int));
+  if (test_read_nbprocs < 0) {
+    error("read nbprocs");
+  }
+  printf("[dsmwrap] nbprocs = %d\n", nb_procs);
+  fflush(stdout);
+
+  /* Lecture du rand du processus */
+  int myrank;
+  int test_read_rank = read(sock_initialisation, &myrank, sizeof(int));
+  if (test_read_rank < 0) {
+    error("read rank");
+  }
+  printf("[dsmwrap] rank = %d\n", myrank);
+  fflush(stdout);
+
+
+
+
+
+  /* Libération des ressources */
+  free(serv_addr_ecoute);
+  close(sock_initialisation);
+  close(sock_ecoute);
+  //info_dsmwrap_clean(infos_init_dsmwrap, nb_procs); utilisé dans le execlp
+
+
+  printf("FINNN\n");
+  fflush(stdout);
 
   /* on execute la bonne commande */
   char *arg_dsm_init[3];
   arg_dsm_init[1]=malloc(sizeof(char));
   arg_dsm_init[2]=malloc(sizeof(char));
   arg_dsm_init[0] = "/home/gregory/Documents/PR204/Phase2/bin/test";
-
-  /*char SOCK_ECOUTE[3];
-  char SOCK_INITIALISATION[3];
-  memset(SOCK_ECOUTE,0,3);
-  memset(SOCK_INITIALISATION,0,3);*/
   sprintf(arg_dsm_init[1],"%d",sock_initialisation);
-//sprintf(SOCK_INITIALISATION,"%d",sock_initialisation);
-//  putenv(SOCK_INITIALISATION);
-  //sprintf(arg_dsm_init[2],"%d\n",sock_ecoute);
-//  sprintf(SOCK_ECOUTE,"%d",sock_ecoute);
-//  putenv(SOCK_ECOUTE);
+  sprintf(arg_dsm_init[2],"%d\n",sock_ecoute);
+
   int exec_res =execlp(arg_dsm_init[0],arg_dsm_init[1],arg_dsm_init[2],NULL);
 
   if (exec_res == -1) {
     perror("exec");
     exit(EXIT_FAILURE);
-  }
-;
+}
   return 0;
 }

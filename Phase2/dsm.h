@@ -50,7 +50,7 @@ extern int sock_ecoute;
 extern int sock_initialisation;
 
 char *dsm_init( int argc, char **argv);
-void  dsm_finalize( void );
+void dsm_finalize(void);
 void info_dsmwrap_init(infos_dsm_t *infos_init_dsmwrap[], int nb_procs);
 int creer_socket_serv(int *serv_port,struct sockaddr_in *serv_addr);
 
