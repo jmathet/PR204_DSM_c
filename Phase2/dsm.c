@@ -1,10 +1,11 @@
 #include "dsm.h"
-#define _GNU_SOURCE
+
 
 int DSM_NODE_NUM; /* nombre de processus dsm */
 int DSM_NODE_ID;
 int sock_ecoute ; /* rang (= numero) du processus */
 int sock_initialisation;
+
 
 void info_dsmwrap_init(infos_dsm_t *infos_init[], int DSM_NODE_NUM){
   for (int i = 0; i < DSM_NODE_NUM; i++)
@@ -160,14 +161,39 @@ static void dsm_free_page( int numpage )
 
 static void *dsm_comm_daemon( void *arg)
 {
+  struct pollfd poll_set[DSM_NODE_NUM];
+  printf("coucocuocucoucoucocucococucoucouocuucouocuoccuouocuoc");
+  fflush(stdout);
+  char* buffer;
+  int read_ok;
+  buffer = malloc(1000);
    while(1)
      {
 	/* a modifier */
-	printf("[%i] Waiting for incoming reqs \n", DSM_NODE_ID);
-	sleep(2);
+  for (int i = 0 ; i < DSM_NODE_NUM ; i++){
+    if(poll_set[i].revents==DSM_NODE_ID){
+      poll_set[i].fd = -1;
+      poll_set[DSM_NODE_NUM+i].fd = -1;
+    }
+    else if (poll_set[i].revents==POLLIN){ // En cas d'activité sur un tube
+      memset(buffer, 0, 1000);
+      do {
+         read_ok = read(poll_set[i].fd, buffer, 1000);
+        if (read_ok==-1)
+          error("read error");
+        printf(">>[Processus %d - daemon] %s", i+1, buffer);
+        fflush(stdout);
+      } while(read_ok<1);
+    }
+      else {
+	     printf("[%i] Waiting for incoming reqs \n", DSM_NODE_ID);
+       }
      }
-   //return;
+
 }
+}
+
+
 send_request(int owner,int numpage,int fd)
 {
   char requete[100];
@@ -189,14 +215,14 @@ static int dsm_recv(int from,void *buf,size_t size)
    /* a completer */
 }
 
-static void dsm_handler( void *page_addr,int sock_ecoute)
+static void dsm_handler( void *page_addr)
 {
    /* A modifier */
    printf("[%i] FAULTY  ACCESS !!! \n",DSM_NODE_ID);
    int numpage = address2num((char *)(page_addr));
    int owner = get_owner(numpage);
    int fd= sock_ecoute;
-   send_request(owner,numpage,fd);
+   //send_request(owner,nu);
    abort();
 }
 
@@ -227,7 +253,7 @@ static void segv_handler(int sig, siginfo_t *info, void *context)
 
    if ((addr >= (void *)BASE_ADDR) && (addr < (void *)TOP_ADDR))
      {
-	dsm_handler(page_addr,sock_ecoute);
+	dsm_handler(page_addr);
      }
    else
      {
@@ -243,17 +269,25 @@ char *dsm_init(int argc, char **argv)
    struct sigaction act;
    int index;
 
-   int sock_initialisation=atoi(argv[1]);
-   int sock_ecoute=atoi(argv[2]);
+  /* int sock_initialisation=atoi(argv[1]);
+   int sock_ecoute=atoi(argv[2]);*/
+   char *val1=getenv("SOCKET_INITIALISATION");
+   int SOCKET_INITIALISATION_GLOBAL=atoi(val1);
+   char *val2=getenv("SOCKET_ECOUTE");
+   int SOCKET_ECOUTE_GLOBAL=atoi(val2);
+
    /* Lecture des infos (port + IP) nécessaires aux connexions aux tres processus dsm */
    infos_dsm_t * infos_init[DSM_NODE_NUM];
+   char *test=malloc(200*sizeof(char));
    info_dsmwrap_init(infos_init, DSM_NODE_NUM);
    for (int i = 0; i < DSM_NODE_NUM; i++) {
-     int test_info_init_dsmwrap = read(sock_initialisation, infos_init[i], sizeof(infos_dsm_t));
+     int test_info_init_dsmwrap = read(SOCKET_INITIALISATION_GLOBAL,test, 200);
      if (test_info_init_dsmwrap < 0)
        error("read info_init_dsmwrap");
    }
 
+   printf("les donnees-------------------------->%s",test);
+   fflush(stdout);
    /* initialisation des connexions */
    /* avec les autres processus : connect/accept */
    /*definition des variables nécessaires au poll*/
@@ -263,7 +297,7 @@ char *dsm_init(int argc, char **argv)
    int *serv_port = malloc(sizeof(int));
 
    sock_ecoute = creer_socket_serv(serv_port,serv_addr_ecoute);
-   do_listen(sock_ecoute, NB_MAX_PROC);
+   do_listen(SOCKET_ECOUTE_GLOBAL,DSM_NODE_NUM );
    /* SOCKET de communication avec les autres processus DMS : SET-UP declarations */
    struct sockaddr_in serv_addr_connexion;
    int sock;

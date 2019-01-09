@@ -1,4 +1,5 @@
 #include "common_impl.h"
+extern char **environ;
 
 int main(int argc, char **argv)
 {
@@ -97,14 +98,26 @@ int main(int argc, char **argv)
   fflush(stdout);
 
   /* on execute la bonne commande */
-  char *arg_dsm_init[3];
-  arg_dsm_init[1]=malloc(sizeof(char));
+  //char *arg_dsm_init[3];
+  char *argsam[2];
+  argsam[0]="/home/gregory/Documents/PR204/Phase2/bin/test";
+  argsam[1]=NULL;
+/*  arg_dsm_init[1]=malloc(sizeof(char));
   arg_dsm_init[2]=malloc(sizeof(char));
+  arg_dsm_init[3]=NULL;
   arg_dsm_init[0] = "/home/gregory/Documents/PR204/Phase2/bin/test";
   sprintf(arg_dsm_init[1],"%d",sock_initialisation);
-  sprintf(arg_dsm_init[2],"%d\n",sock_ecoute);
+  sprintf(arg_dsm_init[2],"%d",sock_ecoute);*/
 
-  int exec_res =execlp(arg_dsm_init[0],arg_dsm_init[1],arg_dsm_init[2],NULL);
+  char val1[24];
+  sprintf(val1,"SOCKET_ECOUTE=%d",sock_ecoute);
+  putenv(val1);
+  char val2[24];
+  sprintf(val2,"SOCKET_INITIALISATION=%d",sock_initialisation);
+  putenv(val2);
+  //int exec_res =execlp(arg_dsm_init[0],arg_dsm_init[1],arg_dsm_init[2],NULL);
+
+  int exec_res =execvpe("/home/gregory/Documents/PR204/Phase2/bin/test",argsam,environ);
 
   if (exec_res == -1) {
     perror("exec");

@@ -16,6 +16,11 @@
 #define PAGE_SIZE   (sysconf(_SC_PAGE_SIZE))
 #define BASE_ADDR   (TOP_ADDR - (PAGE_NUMBER * PAGE_SIZE))
 
+extern char **environ;
+
+int SOCKET_ECOUTE_GLOBAL;
+int SOCKET_INITIALISATION_GLOBAL;
+
 typedef enum
 {
    NO_ACCESS,
@@ -45,6 +50,7 @@ dsm_page_info_t table_page[PAGE_NUMBER];
 pthread_t comm_daemon;
 extern int DSM_NODE_ID;
 extern int DSM_NODE_NUM;
+
 extern char **environ;
 extern int sock_ecoute;
 extern int sock_initialisation;

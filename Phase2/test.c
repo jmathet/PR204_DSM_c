@@ -2,8 +2,8 @@
 
 int main(int argc, char **argv)
 {
-   printf("couvou");
-   fflush(stdout);
+   char *pointeur =malloc(20*sizeof(char));
+   pointeur =dsm_init(argc,argv);
    //int *coucou=dsm_init();
    return 1;
   }

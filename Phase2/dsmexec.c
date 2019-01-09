@@ -206,7 +206,7 @@ int main(int argc, char *argv[])
       sent = 0;
       to_send = sizeof(infos_dsm_t);
       do {
-        sent += write(proc_infos[j]->fd_sock_init, info_init_dsmwrap, sizeof(infos_dsm_t));
+        sent += write(proc_infos[j]->fd_sock_init, info_init_dsmwrap, sizeof(infos_dsm_t)); //je pense que l'erreur est qu'on ne peut pas envoyer de structure avec write
       } while(sent != to_send);
     }
   }
@@ -241,7 +241,7 @@ int main(int argc, char *argv[])
         poll_set[nb_procs+i].fd = -1; // Fermeture du file descriptor correspondant à stderr
       }
       else if (poll_set[i].revents==POLLIN){ // En cas d'activité sur un tube
-        memset(buffer, 0, 1000);
+        memset(buffer,0, 1000);
         do {
           read_ok = read(poll_set[i].fd, buffer, 1000);
           if (read_ok==-1)
