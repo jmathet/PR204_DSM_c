@@ -27,13 +27,9 @@ dsmwrap: dsmwrap.o dsm.o
 	$(CLINKER) $(OPTFLAGS) -o dsmwrap dsmwrap.o  dsm.o $(LIBS)
 	mv dsmwrap ./bin
 
-<<<<<<< HEAD
-test: test.o common.o
-=======
 test: test.o dsm.o
->>>>>>> fab7b7fc86bfbc1b85bce381638e05b48ae603dd
-		$(CLINKER) $(OPTFLAGS) -o test test.o  dsm.o $(LIBS)
-		mv test ./bin
+	$(CLINKER) $(OPTFLAGS) -o test test.o  dsm.o $(LIBS)
+	mv test ./bin
 
 clean:
 	@-/bin/rm -f *.o *~ PI* $(EXECS) *.out core
