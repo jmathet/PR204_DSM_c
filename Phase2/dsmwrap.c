@@ -5,6 +5,7 @@ int main(int argc, char **argv)
   printf("Lancement de dsmwrap\n");
   printf("[dsmwrap] Port serveur reçu : %d\n",atoi(argv[1]) );
   printf("[dsmwrap] IP serveur reçu : %d\n",atoi(argv[2]) );
+  printf("[dsmwrap] exécutable : %s\n",argv[3] );
   fflush(stdout);
   /* processus intermediaire pour "nettoyer" */
   /* la liste des arguments qu'on va passer */
@@ -92,23 +93,20 @@ int main(int argc, char **argv)
   close(sock_ecoute);
   //info_dsmwrap_clean(infos_init_dsmwrap, nb_procs); utilisé dans le execlp
 
-
-  printf("FINNN\n");
-  fflush(stdout);
-
   /* on execute la bonne commande */
-  char *arg_dsm_init[3];
-  arg_dsm_init[1]=malloc(sizeof(char));
-  arg_dsm_init[2]=malloc(sizeof(char));
-  arg_dsm_init[0] = "/home/gregory/Documents/PR204/Phase2/bin/test";
+  char *arg_dsm_init[4];
+  arg_dsm_init[0] = "/home/julien/Bureau/PR204/Phase2/bin/test";
+  arg_dsm_init[1] = malloc(sizeof(int));
+  arg_dsm_init[2] = malloc(sizeof(int));
+  arg_dsm_init[3] = NULL;
+
   sprintf(arg_dsm_init[1],"%d",sock_initialisation);
   sprintf(arg_dsm_init[2],"%d\n",sock_ecoute);
 
-  int exec_res =execlp(arg_dsm_init[0],arg_dsm_init[1],arg_dsm_init[2],NULL);
+  int exec_res = execv(arg_dsm_init[0],arg_dsm_init);
 
   if (exec_res == -1) {
-    perror("exec");
-    exit(EXIT_FAILURE);
+    error("exec dsminit");
 }
   return 0;
 }
