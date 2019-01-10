@@ -15,7 +15,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
-#define PATH ="/home/gregory/Documents/PR204/Phase2/"
+#define PATH "/home/gregory/Documents/PR204/Phase2"
 #define _GNU_SOURCE
 
 #define TOP_ADDR    (0x40000000)

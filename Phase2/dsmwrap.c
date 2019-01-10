@@ -91,10 +91,11 @@ int main(int argc, char **argv)
   //info_dsmwrap_clean(info_init, nb_procs);
 
   /* on execute la bonne commande */
-  char *argsam[2];
+  char *argsam[3];
   argsam[0] = malloc(50);
-  sprintf(argsam[1], "%s%s",CHEMIN, argv[3]);
-  argsam[1]=NULL;
+  sprintf(argsam[1], "%s%s",PATH, argv[3]);
+  printf("%s",argsam[1]);
+  argsam[2]=NULL;
 
 
   char val1[24];

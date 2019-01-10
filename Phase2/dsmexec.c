@@ -85,10 +85,11 @@ int main(int argc, char *argv[])
   char *arg_ssh[7];
   arg_ssh[0]="ssh";
   arg_ssh[1]=malloc(20*sizeof(char)); // Nom de la machine distance
-  arg_ssh[2] = "/home/julien/Projets/PR204/Phase2/bin/dsmwrap";
-  arg_ssh[3]=malloc(sizeof(int)); // Port
-  arg_ssh[4]=malloc(20*sizeof(char)); // IP
-  arg_ssh[5]=malloc(strlen(argv[2])*sizeof(char)+1); // Exécutable
+  arg_ssh[2] = malloc(50) ;
+  sprintf(arg_ssh[2], "%s%s",PATH, "/bin/dsmwrap");
+  arg_ssh[3]=malloc(sizeof(int));    //malloc de toutes les cases nécessaires à la commande ssh ;
+  arg_ssh[4]=malloc(20*sizeof(char));
+  arg_ssh[5]=malloc(strlen(argv[2])*sizeof(char)+1); //nom du fichier à executer de type /bin/test
   strcpy(arg_ssh[5], argv[2]);
   arg_ssh[6]=NULL;
 
@@ -128,17 +129,16 @@ int main(int argc, char *argv[])
 
     if (pid == 0) { /* fils */
       /* redirection stdout */
-      close(STDOUT_FILENO);
+      /*close(STDOUT_FILENO);
       dup(pipefd_stdout[i][1]);
-      close(pipefd_stdout[i][0]);
+      close(pipefd_stdout[i][0]);*/
 
       /* redirection stderr */
-      close(STDERR_FILENO);
+      /*close(STDERR_FILENO);
       dup(pipefd_stderr[i][1]);
-      close(pipefd_stderr[i][0]);
+      close(pipefd_stderr[i][0]);*/
 
       /* jump to new prog : */
-      arg_ssh[2] = "/home/gregory/Documents/PR204/Phase2/bin/dsmwrap";
       sprintf(arg_ssh[1],"%s", proc_infos[i]->name);
       int exec_res = execvp(arg_ssh[0], arg_ssh);
 
