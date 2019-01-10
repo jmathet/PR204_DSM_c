@@ -1,6 +1,5 @@
 #include "dsm.h"
 extern char **environ;
-#define CHEMIN "/home/julien/Projets/PR204/Phase2"
 
 int main(int argc, char **argv)
 {
