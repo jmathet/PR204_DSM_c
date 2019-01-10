@@ -6,6 +6,7 @@ int main(int argc, char **argv)
   printf("Lancement de dsmwrap\n");
   printf("[dsmwrap] Port serveur reçu : %d\n",atoi(argv[1]) );
   printf("[dsmwrap] IP serveur reçu : %d\n",atoi(argv[2]) );
+  printf("[dsmwrap] exécutable : %s\n",argv[3] );
   fflush(stdout);
   /* processus intermediaire pour "nettoyer" */
   /* la liste des arguments qu'on va passer */
@@ -93,10 +94,6 @@ int main(int argc, char **argv)
   close(sock_ecoute);
   //info_dsmwrap_clean(infos_init_dsmwrap, nb_procs); utilisé dans le execlp
 
-
-  printf("FINNN\n");
-  fflush(stdout);
-
   /* on execute la bonne commande */
   //char *arg_dsm_init[3];
   char *argsam[2];
@@ -120,8 +117,7 @@ int main(int argc, char **argv)
   int exec_res =execvpe("/home/gregory/Documents/PR204/Phase2/bin/test",argsam,environ);
 
   if (exec_res == -1) {
-    perror("exec");
-    exit(EXIT_FAILURE);
+    error("exec dsminit");
 }
   return 0;
 }

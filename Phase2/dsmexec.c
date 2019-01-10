@@ -36,8 +36,8 @@ int get_nb_machines(FILE *fd){
 
 int main(int argc, char *argv[])
 {
-  //if (argc < 3)
-  //usage();
+  if (argc < 3)
+    usage();
   /* ETAPE 0 : Mise en place d'un traitant pour recuperer les fils zombies */
   struct sigaction act;  //déclaration et initialisation de la structure sigaction
   memset(&act, 0, sizeof(struct sigaction));
@@ -65,7 +65,7 @@ int main(int argc, char *argv[])
   char * line = NULL;
   size_t len = 0;
 
-
+  fseek(fd_machine_file, SEEK_SET, 0); // Remise à 0 de la position courante
   while ( getline(&line, &len, fd_machine_file) != -1) {
     machines[j] = strtok(line,"\n");
     sprintf(proc_infos[j]->name,"%s", machines[j]);
@@ -82,15 +82,24 @@ int main(int argc, char *argv[])
   int sock;
   struct sockaddr_in *serv_addr=malloc(sizeof(struct sockaddr_in));
   int *serv_port = malloc(sizeof(int));
-  char *arg_ssh[3];
-  arg_ssh[1]=malloc(sizeof(int));
-  arg_ssh[2]=malloc(20*sizeof(char));
+  char *arg_ssh[7];
+  arg_ssh[0]="ssh";
+  arg_ssh[1]=malloc(20*sizeof(char)); // Nom de la machine distance
+  arg_ssh[2] = "/home/julien/Projets/PR204/Phase2/bin/dsmwrap";
+  arg_ssh[3]=malloc(sizeof(int));
+  arg_ssh[4]=malloc(20*sizeof(char));
+  arg_ssh[5]=malloc(strlen(argv[2])*sizeof(char)+1);
+  strcpy(arg_ssh[5], argv[2]);
+  arg_ssh[6]=NULL;
+
+
+
 
   // Initialisations
   sock = creer_socket_serv(serv_port,serv_addr);
   // Remplissage du tableau d'argument pour le ssh
-  sprintf(arg_ssh[2],"%s\n", inet_ntoa(serv_addr->sin_addr));
-  sprintf(arg_ssh[1],"%d", *serv_port);
+  sprintf(arg_ssh[4],"%s", inet_ntoa(serv_addr->sin_addr));
+  sprintf(arg_ssh[3],"%d", *serv_port);
 
   printf("%s//%d\n", inet_ntoa(serv_addr->sin_addr), *serv_port);
 
@@ -129,8 +138,9 @@ int main(int argc, char *argv[])
       close(pipefd_stderr[i][0]);
 
       /* jump to new prog : */
-      arg_ssh[0] = "/home/gregory/Documents/PR204/Phase2/bin/dsmwrap";
-      int exec_res = execlp("ssh", "ssh", "gregory@localhost", arg_ssh[0], arg_ssh[1], arg_ssh[2], NULL);
+      //arg_ssh[0] = "/home/gregory/Documents/PR204/Phase2/bin/dsmwrap";
+      sprintf(arg_ssh[1],"%s", proc_infos[i]->name);
+      int exec_res = execvp(arg_ssh[0], arg_ssh);
 
       if (exec_res == -1) error("exec");
 
@@ -167,7 +177,7 @@ int main(int argc, char *argv[])
   for(int i = 0; i < nb_procs ; i++){
     /* on accepte les connexions des processus dsm */
     fd_sock_init = do_accept(sock, (struct sockaddr*)&client_addr, &addrlen);
-    printf("[dsmexec] connexion réussi %d\n", fd_sock_init);
+    printf("[dsmexec] connexion réussi (descrpteur de fichier associé : %d)\n", fd_sock_init);
 
     /* Reception du nom de la machine et de son numéro de port */
     test_read = read(fd_sock_init, buf_read, sizeof(info_init_t));
