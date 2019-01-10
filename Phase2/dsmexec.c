@@ -86,9 +86,9 @@ int main(int argc, char *argv[])
   arg_ssh[0]="ssh";
   arg_ssh[1]=malloc(20*sizeof(char)); // Nom de la machine distance
   arg_ssh[2] = "/home/julien/Projets/PR204/Phase2/bin/dsmwrap";
-  arg_ssh[3]=malloc(sizeof(int));
-  arg_ssh[4]=malloc(20*sizeof(char));
-  arg_ssh[5]=malloc(strlen(argv[2])*sizeof(char)+1);
+  arg_ssh[3]=malloc(sizeof(int)); // Port
+  arg_ssh[4]=malloc(20*sizeof(char)); // IP
+  arg_ssh[5]=malloc(strlen(argv[2])*sizeof(char)+1); // Exécutable
   strcpy(arg_ssh[5], argv[2]);
   arg_ssh[6]=NULL;
 
