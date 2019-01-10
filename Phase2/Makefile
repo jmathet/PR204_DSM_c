@@ -7,7 +7,7 @@ OPTFLAGS     = -O0
 
 SHELL = /bin/sh
 
-CFLAGS  =   -DREENTRANT
+CFLAGS  =   -DREENTRANT -std=c99
 CCFLAGS = $(CFLAGS)
 LIBS =  -lpthread
 
@@ -27,7 +27,7 @@ dsmwrap: dsmwrap.o common.o
 	$(CLINKER) $(OPTFLAGS) -o dsmwrap dsmwrap.o  common.o $(LIBS)
 	mv dsmwrap ./bin
 
-test: test.o common.o 
+test: test.o common.o
 		$(CLINKER) $(OPTFLAGS) -o test test.o  dsm.o $(LIBS)
 		mv test ./bin
 
