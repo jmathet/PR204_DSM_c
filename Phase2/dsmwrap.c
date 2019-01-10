@@ -1,4 +1,4 @@
-#include "common_impl.h"
+#include "dsm.h"
 extern char **environ;
 
 int main(int argc, char **argv)

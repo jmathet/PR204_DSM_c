@@ -1,4 +1,4 @@
-#include "common_impl.h"
+#include "dsm.h"
 #include "errno.h"
 #include <arpa/inet.h>
 
@@ -138,7 +138,7 @@ int main(int argc, char *argv[])
       close(pipefd_stderr[i][0]);
 
       /* jump to new prog : */
-      //arg_ssh[0] = "/home/gregory/Documents/PR204/Phase2/bin/dsmwrap";
+      arg_ssh[2] = "/home/gregory/Documents/PR204/Phase2/bin/dsmwrap";
       sprintf(arg_ssh[1],"%s", proc_infos[i]->name);
       int exec_res = execvp(arg_ssh[0], arg_ssh);
 

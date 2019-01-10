@@ -11,7 +11,7 @@ CFLAGS  =   -DREENTRANT
 CCFLAGS = $(CFLAGS)
 LIBS =  -lpthread
 
-EXECS = exemple common.o dsmexec dsmwrap test
+EXECS = exemple dsm.o dsmexec dsmwrap test
 
 default: $(EXECS)
 
@@ -19,15 +19,15 @@ default: $(EXECS)
 exemple: exemple.o dsm.o
 	$(CLINKER) $(OPTFLAGS) -o exemple exemple.o dsm.o  $(LIBS)
 
-dsmexec: dsmexec.o common.o
-	$(CLINKER) $(OPTFLAGS) -o dsmexec dsmexec.o  common.o $(LIBS)
+dsmexec: dsmexec.o dsm.o
+	$(CLINKER) $(OPTFLAGS) -o dsmexec dsmexec.o  dsm.o $(LIBS)
 	mv dsmexec ./bin
 
-dsmwrap: dsmwrap.o common.o
-	$(CLINKER) $(OPTFLAGS) -o dsmwrap dsmwrap.o  common.o $(LIBS)
+dsmwrap: dsmwrap.o dsm.o
+	$(CLINKER) $(OPTFLAGS) -o dsmwrap dsmwrap.o  dsm.o $(LIBS)
 	mv dsmwrap ./bin
 
-test: test.o common.o 
+test: test.o dsm.o
 		$(CLINKER) $(OPTFLAGS) -o test test.o  dsm.o $(LIBS)
 		mv test ./bin
 
