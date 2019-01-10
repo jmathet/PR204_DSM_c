@@ -22,7 +22,7 @@ int main(int argc, char **argv)
   int host_port = atoi(argv[1]);
   int sock_initialisation;
   char hostname[1024];
-  int nb_procs;
+  
 
   /* SOCKET d'initialisation SET-UP construction */
   sock_initialisation = do_socket();
@@ -64,30 +64,10 @@ int main(int argc, char **argv)
 
   free(info_init); // Libération de ressources intiles
 
-  /* Lecture du nombre de processus dsm */
-  printf("[dsmwrap] début lecture\n");
-  fflush(stdout);
-
-  int test_read_nbprocs = read(sock_initialisation, &nb_procs, sizeof(int));
-  if (test_read_nbprocs < 0) {
-    error("read nbprocs");
-  }
-  printf("[dsmwrap] nbprocs = %d\n", nb_procs);
-  fflush(stdout);
-
-  /* Lecture du rand du processus */
-  int myrank;
-  int test_read_rank = read(sock_initialisation, &myrank, sizeof(int));
-  if (test_read_rank < 0) {
-    error("read rank");
-  }
-  printf("[dsmwrap] rank = %d\n", myrank);
-  fflush(stdout);
-
   /* Libération des ressources */
   free(serv_addr_ecoute);
-  close(sock_initialisation);
-  close(sock_ecoute);
+//  close(sock_initialisation);
+//  close(sock_ecoute);
   //info_dsmwrap_clean(info_init, nb_procs);
 
   /* on execute la bonne commande */

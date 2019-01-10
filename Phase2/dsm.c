@@ -1,7 +1,7 @@
 #include "dsm.h"
 
 
-int DSM_NODE_NUM; /* nombre de processus dsm */
+int nb_procs; /* nombre de processus dsm */
 int DSM_NODE_ID;
 int sock_ecoute ; /* rang (= numero) du processus */
 int sock_initialisation;
@@ -130,8 +130,8 @@ int find_rank_byname(dsm_proc_distant_t *proc_infos[], char *name, int nb_proc){
   return 0;
 }
 
-/*void info_dsmwrap_init(infos_dsm_t *infos_init[], int DSM_NODE_NUM){
-  for (int i = 0; i < DSM_NODE_NUM; i++)
+/*void info_dsmwrap_init(infos_dsm_t *infos_init[], int nb_procs){
+  for (int i = 0; i < nb_procs; i++)
   infos_init[i] = malloc(sizeof(infos_dsm_t));
 }*/
 
@@ -205,7 +205,7 @@ static void dsm_free_page( int numpage )
 
 static void *dsm_comm_daemon( void *arg)
 {
-  struct pollfd poll_set[DSM_NODE_NUM];
+  struct pollfd poll_set[nb_procs];
   printf("coucocuocucoucoucocucococucoucouocuucouocuoccuouocuoc");
   fflush(stdout);
   char* buffer;
@@ -214,10 +214,10 @@ static void *dsm_comm_daemon( void *arg)
    while(1)
      {
 	/* a modifier */
-  for (int i = 0 ; i < DSM_NODE_NUM ; i++){
+  for (int i = 0 ; i < nb_procs ; i++){
     if(poll_set[i].revents==DSM_NODE_ID){
       poll_set[i].fd = -1;
-      poll_set[DSM_NODE_NUM+i].fd = -1;
+      poll_set[nb_procs+i].fd = -1;
     }
     else if (poll_set[i].revents==POLLIN){ // En cas d'activité sur un tube
       memset(buffer, 0, 1000);
@@ -312,6 +312,7 @@ char *dsm_init(int argc, char **argv)
 {
    struct sigaction act;
    int index;
+   int nb_procs;
 
   /* int sock_initialisation=atoi(argv[1]);
    int sock_ecoute=atoi(argv[2]);*/
@@ -320,18 +321,38 @@ char *dsm_init(int argc, char **argv)
    char *val2=getenv("SOCKET_ECOUTE");
    int SOCKET_ECOUTE_GLOBAL=atoi(val2);
 
+     /* Lecture du nombre de processus dsm */
+     printf("[DSM init] début lecture\n");
+     fflush(stdout);
+
+     int test_read_nbprocs = read(SOCKET_INITIALISATION_GLOBAL, &nb_procs, sizeof(int));
+     if (test_read_nbprocs < 0) {
+       error("read nbprocs");
+     }
+     printf("[DSM init] nbprocs = %d\n", nb_procs);
+     fflush(stdout);
+
+     /* Lecture du rand du processus */
+     int myrank;
+     int test_read_rank = read(SOCKET_INITIALISATION_GLOBAL, &myrank, sizeof(int));
+     if (test_read_rank < 0) {
+       error("read rank");
+     }
+     printf("[DSM init] rank = %d\n", myrank);
+     fflush(stdout);
+
+
    /* Lecture des infos (port + IP) nécessaires aux connexions aux tres processus dsm */
-   infos_dsm_t * infos_init[DSM_NODE_NUM];
-   char *test=malloc(200*sizeof(char));
-   info_dsmwrap_init(infos_init, DSM_NODE_NUM);
-   for (int i = 0; i < DSM_NODE_NUM; i++) {
-     int test_info_init_dsmwrap = read(SOCKET_INITIALISATION_GLOBAL,test, 200);
-     if (test_info_init_dsmwrap < 0)
-       error("read info_init_dsmwrap");
+   infos_dsm_t *infos_init[nb_procs];
+   info_dsmwrap_init(infos_init, nb_procs);
+   for (int i = 0; i < nb_procs; i++) {
+     int test_info_init = read(SOCKET_INITIALISATION_GLOBAL,infos_init[i],sizeof(infos_dsm_t));
+     printf("########### lecture dsm init pour le rank %d\n", infos_init[i]->rank);
+     fflush(stdout);
+     if (test_info_init < 0)
+       error("read info_init_dsminit");
    }
 
-   printf("les donnees-------------------------->%d",SOCKET_ECOUTE_GLOBAL);
-   fflush(stdout);
    /* initialisation des connexions */
    /* avec les autres processus : connect/accept */
    /*definition des variables nécessaires au poll*/
@@ -340,12 +361,11 @@ char *dsm_init(int argc, char **argv)
    socklen_t addrlen = sizeof(struct sockaddr);
    int *serv_port = malloc(sizeof(int));
 
-   sock_ecoute = creer_socket_serv(serv_port,serv_addr_ecoute);
-   do_listen(SOCKET_ECOUTE_GLOBAL,DSM_NODE_NUM );
+
    /* SOCKET de communication avec les autres processus DMS : SET-UP declarations */
    struct sockaddr_in serv_addr_connexion;
    int sock;
-   for (int j = 0; j <DSM_NODE_NUM; j++) {
+   for (int j = 0; j <nb_procs; j++) {
      printf("====>%d\n",infos_init[j]->rank);
      if (infos_init[j]->rank > DSM_NODE_ID) {
        sock = do_socket();
@@ -357,7 +377,7 @@ char *dsm_init(int argc, char **argv)
      else if (infos_init[j]->rank != DSM_NODE_ID){
        printf(">>>>>>>[dsm%d] accept début %d\n",DSM_NODE_ID, infos_init[j]->rank );
        fflush(stdout);
-       sock = do_accept(sock_ecoute, (struct sockaddr*)serv_addr_ecoute, &addrlen);
+       sock = do_accept(SOCKET_ECOUTE_GLOBAL, (struct sockaddr*)serv_addr_ecoute, &addrlen);
        printf(">>>>>>>[dsm] accept fin de  la fin : %d\n", sock);
        fflush(stdout);
      }
@@ -367,9 +387,9 @@ char *dsm_init(int argc, char **argv)
 
    /* Allocation des pages en tourniquet */
    for(index = 0; index < PAGE_NUMBER; index ++){
-     if ((index % DSM_NODE_NUM) == DSM_NODE_ID)
+     if ((index % nb_procs) == DSM_NODE_ID)
        dsm_alloc_page(index);
-     dsm_change_info( index, WRITE, index % DSM_NODE_NUM);
+     dsm_change_info( index, WRITE, index % nb_procs);
    }
 
    /* mise en place du traitant de SIGSEGV */
