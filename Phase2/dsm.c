@@ -1,5 +1,7 @@
 #include "dsm.h"
 
+int DSM_NODE_ID;
+int DSM_NODE_NUM;
 
 void error(char* error_description){
   perror(error_description);
@@ -200,36 +202,34 @@ static void dsm_free_page( int numpage )
 
 static void *dsm_comm_daemon( void *arg)
 {
-  struct pollfd poll_set[nb_procs];
-  printf("coucocuocucoucoucocucococucoucouocuucouocuoccuouocuoc");
+  struct pollfd poll_set[DSM_NODE_NUM];
+  printf("[dsm_comm_daemon] Lancement \n");
   fflush(stdout);
   char* buffer;
   int read_ok;
   buffer = malloc(1000);
-   while(1)
-     {
-	/* a modifier */
-  for (int i = 0 ; i < nb_procs ; i++){
-    if(poll_set[i].revents==DSM_NODE_ID){
-      poll_set[i].fd = -1;
-      poll_set[nb_procs+i].fd = -1;
-    }
-    else if (poll_set[i].revents==POLLIN){ // En cas d'activité sur un tube
-      memset(buffer, 0, 1000);
-      do {
-         read_ok = read(poll_set[i].fd, buffer, 1000);
-        if (read_ok==-1)
-          error("read error");
-        printf(">>[Processus %d - daemon] %s", i+1, buffer);
-        fflush(stdout);
-      } while(read_ok<1);
-    }
+  while(1){
+    /* a modifier */
+    for (int i = 0 ; i < DSM_NODE_NUM ; i++){
+      if(poll_set[i].revents==POLLHUP){
+        poll_set[i].fd = -1;
+        poll_set[DSM_NODE_NUM+i].fd = -1;
+      }
+      else if (poll_set[i].revents==POLLIN){ // En cas d'activité sur un tube
+        memset(buffer, 0, 1000);
+        do {
+          read_ok = read(poll_set[i].fd, buffer, 1000);
+          if (read_ok==-1)
+            error("read error");
+          printf(">>[Processus %d - daemon] %s", i+1, buffer);
+          fflush(stdout);
+        } while(read_ok<1);
+      }
       else {
-	     printf("[%i] Waiting for incoming reqs \n", DSM_NODE_ID);
-       }
-     }
-
-}
+        printf("[%i] Waiting for incoming reqs \n", DSM_NODE_ID);
+      }
+    }
+  }
 }
 
 
@@ -318,25 +318,26 @@ char *dsm_init(int argc, char **argv)
    printf("[DSM init] début lecture\n");
    fflush(stdout);
 
-   int test_read_nbprocs = read(SOCKET_INITIALISATION_GLOBAL, &nb_procs, sizeof(int));
+   int test_read_nbprocs = read(SOCKET_INITIALISATION_GLOBAL, &DSM_NODE_NUM, sizeof(int));
    if (test_read_nbprocs < 0) {
      error("read nbprocs");
    }
-   printf("[DSM init] nbprocs = %d\n", nb_procs);
+
+   printf("[DSM init] DSM_NODE_NUM = %d\n", DSM_NODE_NUM);
    fflush(stdout);
    /* Lecture du rand du processus */
    int myrank;
-   int test_read_rank = read(SOCKET_INITIALISATION_GLOBAL, &myrank, sizeof(int));
+   int test_read_rank = read(SOCKET_INITIALISATION_GLOBAL, &DSM_NODE_ID, sizeof(int));
    if (test_read_rank < 0) {
      error("read rank");
    }
-   printf("[DSM init] rank = %d\n", myrank);
+   printf("[DSM init] rank = %d\n", DSM_NODE_ID);
    fflush(stdout);
 
    /* Lecture des infos (port + IP) nécessaires aux connexions aux tres processus dsm */
-   infos_dsm_t *infos_init[nb_procs];
-   info_dsmwrap_init(infos_init, nb_procs);
-   for (int i = 0; i < nb_procs; i++) {
+   infos_dsm_t *infos_init[DSM_NODE_NUM];
+   info_dsmwrap_init(infos_init, DSM_NODE_NUM);
+   for (int i = 0; i < DSM_NODE_NUM; i++) {
      int test_info_init = read(SOCKET_INITIALISATION_GLOBAL,infos_init[i],sizeof(infos_dsm_t));
      printf("########### lecture dsm init pour le rank %d\n", infos_init[i]->rank);
      fflush(stdout);
@@ -355,7 +356,7 @@ char *dsm_init(int argc, char **argv)
    /* SOCKET de communication avec les autres processus DMS : SET-UP declarations */
    struct sockaddr_in serv_addr_connexion;
    int sock;
-   for (int j = 0; j <nb_procs; j++) {
+   for (int j = 0; j <DSM_NODE_NUM; j++) {
      printf("====>%d\n",infos_init[j]->rank);
      if (infos_init[j]->rank > DSM_NODE_ID) {
        sock = do_socket();
@@ -376,9 +377,9 @@ char *dsm_init(int argc, char **argv)
 
    /* Allocation des pages en tourniquet */
    for(index = 0; index < PAGE_NUMBER; index ++){
-     if ((index % nb_procs) == DSM_NODE_ID)
+     if ((index % DSM_NODE_NUM) == DSM_NODE_ID)
        dsm_alloc_page(index);
-     dsm_change_info( index, WRITE, index % nb_procs);
+     dsm_change_info( index, WRITE, index % DSM_NODE_NUM);
    }
 
    /* mise en place du traitant de SIGSEGV */

@@ -22,7 +22,7 @@ int main(int argc, char **argv)
   int host_port = atoi(argv[1]);
   int sock_initialisation;
   char hostname[1024];
-  
+
 
   /* SOCKET d'initialisation SET-UP construction */
   sock_initialisation = do_socket();
@@ -85,6 +85,7 @@ int main(int argc, char **argv)
   sprintf(val2,"SOCKET_INITIALISATION=%d",sock_initialisation);
   putenv(val2);
 
+  
   int exec_res =execvpe(argsam[0], argsam ,environ);
   if (exec_res == -1) error("exec dsminit");
 
