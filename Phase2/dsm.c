@@ -202,31 +202,48 @@ static void dsm_free_page( int numpage )
 
 static void *dsm_comm_daemon( void *arg)
 {
-  struct pollfd poll_set[DSM_NODE_NUM];
   printf("[dsm_comm_daemon] Lancement \n");
   fflush(stdout);
+
+  // Initialisation
+  struct pollfd poll_set[DSM_NODE_NUM];
+  int polling=0;
   char* buffer;
   int read_ok;
+  int *sock;
+
+  // Allocations
   buffer = malloc(1000);
+  //sock = malloc(sizeof(int)*DSM_NODE_NUM);
+
+  // Extraction des arguments
+  sock = (int *)arg;
+
+  for (int j = 0; j < DSM_NODE_NUM; j++) {
+    poll_set[j].fd = sock[j];
+    poll_set[j].events = POLLIN;
+  }
+
   while(1){
-    /* a modifier */
+    do {
+      polling = poll(poll_set,DSM_NODE_NUM,-1);
+    } while ((polling == -1) && (errno == EINTR));
+    if (polling<0)
+      error("poll");
+    else if (polling==0)
+      printf(" poll() timed out. End program.\n");
+
     for (int i = 0 ; i < DSM_NODE_NUM ; i++){
-      if(poll_set[i].revents==POLLHUP){
+      if(poll_set[i].revents==POLLHUP){ // En cas de rupture de la socket
         poll_set[i].fd = -1;
-        poll_set[DSM_NODE_NUM+i].fd = -1;
       }
-      else if (poll_set[i].revents==POLLIN){ // En cas d'activité sur un tube
+      else if (poll_set[i].revents==POLLIN){ // En cas d'activité sur la socket
         memset(buffer, 0, 1000);
         do {
           read_ok = read(poll_set[i].fd, buffer, 1000);
           if (read_ok==-1)
             error("read error");
-          printf(">>[Processus %d - daemon] %s", i+1, buffer);
-          fflush(stdout);
         } while(read_ok<1);
-      }
-      else {
-        printf("[%i] Waiting for incoming reqs \n", DSM_NODE_ID);
       }
     }
   }
@@ -355,21 +372,21 @@ char *dsm_init(int argc, char **argv)
 
    /* SOCKET de communication avec les autres processus DMS : SET-UP declarations */
    struct sockaddr_in serv_addr_connexion;
-   int sock;
+   int sock[DSM_NODE_NUM];
    for (int j = 0; j <DSM_NODE_NUM; j++) {
-     printf("====>%d\n",infos_init[j]->rank);
+     sock[j] = -1;
      if (infos_init[j]->rank > DSM_NODE_ID) {
-       sock = do_socket();
+       sock[j] = do_socket();
        init_client_addr(&serv_addr_connexion, infos_init[j]->IP, infos_init[j]->port);
-       do_connect(sock, serv_addr_connexion);
-       printf(">>>>>>>[dsm] connexion ok : %d\n", sock);
+       do_connect(sock[j], serv_addr_connexion);
+       printf(">>>>>>>[dsm] connexion ok : %d\n", sock[j]);
        fflush(stdout);
      }
      else if (infos_init[j]->rank != DSM_NODE_ID){
        printf(">>>>>>>[dsm%d] accept début %d\n",DSM_NODE_ID, infos_init[j]->rank );
        fflush(stdout);
-       sock = do_accept(SOCKET_ECOUTE_GLOBAL, (struct sockaddr*)serv_addr_ecoute, &addrlen);
-       printf(">>>>>>>[dsm] accept fin de  la fin : %d\n", sock);
+       sock[j] = do_accept(SOCKET_ECOUTE_GLOBAL, (struct sockaddr*)serv_addr_ecoute, &addrlen);
+       printf(">>>>>>>[dsm] accept fin de  la fin : %d\n", sock[j]);
        fflush(stdout);
      }
    }
@@ -390,7 +407,7 @@ char *dsm_init(int argc, char **argv)
    /* creation du thread de communication */
    /* ce thread va attendre et traiter les requetes */
    /* des autres processus */
-   pthread_create(&comm_daemon, NULL, dsm_comm_daemon, NULL);
+   pthread_create(&comm_daemon, NULL, dsm_comm_daemon, (void*)&sock);
 
    /* Adresse de début de la zone de mémoire partagée */
    return ((char *)BASE_ADDR);
@@ -402,7 +419,7 @@ void dsm_finalize(void)
    /* Libération des ressources */
 
 
-
+   sleep(2*DSM_NODE_NUM);
    /* terminer correctement le thread de communication */
    /* pour le moment, on peut faire : */
    pthread_cancel(comm_daemon);
