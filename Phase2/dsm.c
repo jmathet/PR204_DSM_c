@@ -250,12 +250,12 @@ static void *dsm_comm_daemon( void *arg)
 }
 
 
-send_request(int owner,int numpage,int fd)
+send_request(int owner,int numpage)
 {
   char requete[100];
   memset(requete,'\0',46);
   sprintf(requete,"le processus %d demande d'acceder à la page : %d",DSM_NODE_ID,numpage);
-  int wr=write(fd,requete,46);
+  int wr=write(SOCKET_INITIALISATION_GLOBAL,requete,46);
   if (wr < 0) {
     error("error sending request\n");
   }
