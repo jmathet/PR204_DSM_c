@@ -4,6 +4,9 @@ int main(int argc, char **argv)
 {
    char *pointeur =malloc(20*sizeof(char));
    pointeur =dsm_init(argc,argv);
-   //int *coucou=dsm_init();
+
+   printf("JE SUIS LE PROGRAMME TEST\n");
+
+   dsm_finalize();
    return 1;
   }

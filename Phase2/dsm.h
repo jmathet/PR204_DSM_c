@@ -22,8 +22,6 @@
 #define PAGE_NUMBER (10) // 100 plus tard
 #define PAGE_SIZE   (sysconf(_SC_PAGE_SIZE))
 #define BASE_ADDR   (TOP_ADDR - (PAGE_NUMBER * PAGE_SIZE))
-/* autres includes (eventuellement) */
-
 #define NB_MAX_PROC 50
 #define LENGTH_NAME_MAX 50
 #define LENGTH_IP_ADDR 10
@@ -33,7 +31,9 @@ extern char **environ;
 int SOCKET_ECOUTE_GLOBAL;
 int SOCKET_INITIALISATION_GLOBAL;
 
-#define ERROR_EXIT(str) {perror(str);exit(EXIT_FAILURE);}
+pthread_t comm_daemon;
+extern int DSM_NODE_ID;
+extern int DSM_NODE_NUM;
 
 /* definition du type des infos */
 /* de connexion des processus dsm */
@@ -47,8 +47,6 @@ struct dsm_proc_distant  {
 };
 typedef struct dsm_proc_distant dsm_proc_distant_t;
 
-/* definition du type des infos */
-/* d'identification des processus dsm */
 struct info_init {
   char name[LENGTH_NAME_MAX];
   int port;
@@ -61,10 +59,6 @@ struct infos_dsm {
   int rank;
 };
 typedef struct infos_dsm infos_dsm_t;
-
-
-/* fin des includes */
-
 
 typedef enum
 {
@@ -92,30 +86,10 @@ typedef struct
 
 dsm_page_info_t table_page[PAGE_NUMBER];
 
-pthread_t comm_daemon;
-extern int DSM_NODE_ID;
-extern int DSM_NODE_NUM;
-
-extern char **environ;
-extern int sock_ecoute;
-extern int sock_initialisation;
-
 char *dsm_init( int argc, char **argv);
+
 void dsm_finalize(void);
-void info_dsmwrap_init(infos_dsm_t *infos_init_dsmwrap[], int nb_procs);
-int creer_socket_serv(int *serv_port,struct sockaddr_in *serv_addr);
 
-int do_socket();
-
-void init_serv_addr(struct sockaddr_in *serv_addr, int port );
-void do_listen(int socket, int nb_max);
-
-int do_accept(int socket, struct sockaddr *addr, socklen_t* addrlen);
-void do_bind(int socket, struct sockaddr_in addr_in);
-void do_connect(int sock, struct sockaddr_in host_addr);
-void do_bind(int socket, struct sockaddr_in addr_in);
-
-//common_impl début
 void error(char* error_description);
 
 void proc_infos_init(dsm_proc_distant_t *proc_infos[], int nb_proc);
@@ -143,4 +117,3 @@ int do_accept(int socket, struct sockaddr *addr, socklen_t* addrlen);
 void do_connect(int sock, struct sockaddr_in host_addr);
 
 int find_rank_byname(dsm_proc_distant_t *proc_infos[], char *name, int nb_proc);
-//common_im fin

@@ -23,6 +23,7 @@ void sigchld_handler(int sig)
   num_procs_creat--;
 }
 
+/* Fonction permettant de récupérer le nombre de processus à créer */
 int get_nb_machines(FILE *fd){
   char * line = NULL;
   size_t len = 0;
@@ -39,18 +40,17 @@ int main(int argc, char *argv[])
   if (argc < 3)
     usage();
   /* ETAPE 0 : Mise en place d'un traitant pour recuperer les fils zombies */
-  struct sigaction act;  //déclaration et initialisation de la structure sigaction
-  memset(&act, 0, sizeof(struct sigaction));
+  struct sigaction act;  // Déclaration et initialisation de la structure sigaction
+  memset(&act, 0, sizeof(struct sigaction)); // Mise à 0 de la structure sigaction
   act.sa_handler = sigchld_handler;
   sigemptyset(&(act.sa_mask));
   act.sa_flags = 0;
-  sigaction(SIGCHLD, &act, NULL); // mise en place effective du traitant
+  sigaction(SIGCHLD, &act, NULL); // Mise en place effective du traitant
 
 
   /* ETAPE 1 : Lecture du nombre de ligne dans le machine_file passé en argument pour connaître le nombre et le nom des machines */
   FILE * fd_machine_file;
   int nb_procs;
-
 
   fd_machine_file = fopen(argv[1], "r");
   if (fd_machine_file == NULL)
@@ -78,31 +78,32 @@ int main(int argc, char *argv[])
   /*------------- FIN ETAPE 1 ----------------*/
 
   /* ETAPE 2 : creation de la socket d'ecoute */
-  // Déclarations
+  // Déclarations et allocations des varaibles utiles à la socket d'initialisation
   int sock;
   struct sockaddr_in *serv_addr=malloc(sizeof(struct sockaddr_in));
   int *serv_port = malloc(sizeof(int));
+
+  // Déclaration et allocation des variables utiles au exec SSH
   char *arg_ssh[7];
-  arg_ssh[0]="ssh";
-  arg_ssh[1]=malloc(20*sizeof(char)); // Nom de la machine distance
-  arg_ssh[2] = malloc(50) ;
-  sprintf(arg_ssh[2], "%s%s",PATH, "/bin/dsmwrap");
-  arg_ssh[3]=malloc(sizeof(int));    //malloc de toutes les cases nécessaires à la commande ssh ;
-  arg_ssh[4]=malloc(20*sizeof(char));
-  arg_ssh[5]=malloc(strlen(argv[2])*sizeof(char)+1); //nom du fichier à executer de type /bin/test
-  strcpy(arg_ssh[5], argv[2]);
-  arg_ssh[6]=NULL;
+  arg_ssh[0] = "ssh";
+  arg_ssh[1] = malloc(20*sizeof(char)); // Nom de la machine distance
+  arg_ssh[2] = malloc(50) ;// PATH
+  arg_ssh[3] = malloc(sizeof(int)); //malloc de toutes les cases nécessaires à la commande ssh
+  arg_ssh[4] = malloc(20*sizeof(char)); //
+  arg_ssh[5] = malloc(strlen(argv[2])*sizeof(char)+1); //nom du fichier à executer de type /bin/test
+  arg_ssh[6] = NULL; // Dernier argument de exec
 
 
-
-
-  // Initialisations
+  // Initialisations des variables utiles à la socket d'intialisation
   sock = creer_socket_serv(serv_port,serv_addr);
-  // Remplissage du tableau d'argument pour le ssh
+
+  // Remplissage du tableau d'arguments pour le exec SSH
+  sprintf(arg_ssh[2], "%s%s",PATH, "/bin/dsmwrap"); // Création du chemin à partir de la racine pour le recouvrement dsmwrap
+  strcpy(arg_ssh[5], argv[2]); // Copie du fichier à lancer (exemple : /bin/test)
   sprintf(arg_ssh[4],"%s", inet_ntoa(serv_addr->sin_addr));
   sprintf(arg_ssh[3],"%d", *serv_port);
 
-  printf("%s//%d\n", inet_ntoa(serv_addr->sin_addr), *serv_port);
+  printf("[DSMEXEC] socket initialisation : IP %s// Port %d\n", inet_ntoa(serv_addr->sin_addr), *serv_port);
 
   // Ecoute effective (=listen)
   do_listen(sock, NB_MAX_PROC);
@@ -129,20 +130,20 @@ int main(int argc, char *argv[])
 
     if (pid == 0) { /* fils */
       /* redirection stdout */
-      /*close(STDOUT_FILENO);
+      close(STDOUT_FILENO);
       dup(pipefd_stdout[i][1]);
-      close(pipefd_stdout[i][0]);*/
+      close(pipefd_stdout[i][0]);
 
       /* redirection stderr */
-      /*close(STDERR_FILENO);
+      close(STDERR_FILENO);
       dup(pipefd_stderr[i][1]);
-      close(pipefd_stderr[i][0]);*/
+      close(pipefd_stderr[i][0]);
 
       /* jump to new prog : */
       sprintf(arg_ssh[1],"%s", proc_infos[i]->name);
       int exec_res = execvp(arg_ssh[0], arg_ssh);
 
-      if (exec_res == -1) error("exec");
+      if (exec_res == -1) error("exec ssh");
 
     } else  if(pid > 0) { /* pere */
       /* fermeture des extremites des tubes non utiles */
@@ -190,7 +191,6 @@ int main(int argc, char *argv[])
     strcpy(proc_infos[i]->IP, inet_ntoa(client_addr.sin_addr));
     proc_infos[i]->rank = find_rank_byname(proc_infos, buf_read->name, nb_procs);
     proc_infos[i]->fd_sock_init = fd_sock_init;
-    proc_infos[i]->bool_init = 1;
   }
 
   for (int j = 0; j < nb_procs; j++) {
@@ -278,10 +278,12 @@ int main(int argc, char *argv[])
   for (int i = 0; i < nb_procs; i++) {
     close(poll_set[i].fd);
     close(poll_set[nb_procs+i].fd);
+  }
   free(buffer);
   proc_infos_clean(proc_infos, nb_procs);
+
   /* on ferme la socket d'ecoute */
   close(sock);
   exit(EXIT_SUCCESS);
-}
+
 }

@@ -1,11 +1,6 @@
 #include "dsm.h"
 
 
-int nb_procs; /* nombre de processus dsm */
-int DSM_NODE_ID;
-int sock_ecoute ; /* rang (= numero) du processus */
-int sock_initialisation;
-
 void error(char* error_description){
   perror(error_description);
   exit(EXIT_FAILURE);
@@ -265,7 +260,7 @@ static void dsm_handler( void *page_addr)
    printf("[%i] FAULTY  ACCESS !!! \n",DSM_NODE_ID);
    int numpage = address2num((char *)(page_addr));
    int owner = get_owner(numpage);
-   int fd= sock_ecoute;
+   int fd = SOCKET_ECOUTE_GLOBAL;
    //send_request(owner,nu);
    abort();
 }
@@ -314,33 +309,29 @@ char *dsm_init(int argc, char **argv)
    int index;
    int nb_procs;
 
-  /* int sock_initialisation=atoi(argv[1]);
-   int sock_ecoute=atoi(argv[2]);*/
    char *val1=getenv("SOCKET_INITIALISATION");
    int SOCKET_INITIALISATION_GLOBAL=atoi(val1);
    char *val2=getenv("SOCKET_ECOUTE");
    int SOCKET_ECOUTE_GLOBAL=atoi(val2);
 
-     /* Lecture du nombre de processus dsm */
-     printf("[DSM init] début lecture\n");
-     fflush(stdout);
+   /* Lecture du nombre de processus dsm */
+   printf("[DSM init] début lecture\n");
+   fflush(stdout);
 
-     int test_read_nbprocs = read(SOCKET_INITIALISATION_GLOBAL, &nb_procs, sizeof(int));
-     if (test_read_nbprocs < 0) {
-       error("read nbprocs");
-     }
-     printf("[DSM init] nbprocs = %d\n", nb_procs);
-     fflush(stdout);
-
-     /* Lecture du rand du processus */
-     int myrank;
-     int test_read_rank = read(SOCKET_INITIALISATION_GLOBAL, &myrank, sizeof(int));
-     if (test_read_rank < 0) {
-       error("read rank");
-     }
-     printf("[DSM init] rank = %d\n", myrank);
-     fflush(stdout);
-
+   int test_read_nbprocs = read(SOCKET_INITIALISATION_GLOBAL, &nb_procs, sizeof(int));
+   if (test_read_nbprocs < 0) {
+     error("read nbprocs");
+   }
+   printf("[DSM init] nbprocs = %d\n", nb_procs);
+   fflush(stdout);
+   /* Lecture du rand du processus */
+   int myrank;
+   int test_read_rank = read(SOCKET_INITIALISATION_GLOBAL, &myrank, sizeof(int));
+   if (test_read_rank < 0) {
+     error("read rank");
+   }
+   printf("[DSM init] rank = %d\n", myrank);
+   fflush(stdout);
 
    /* Lecture des infos (port + IP) nécessaires aux connexions aux tres processus dsm */
    infos_dsm_t *infos_init[nb_procs];
@@ -360,7 +351,6 @@ char *dsm_init(int argc, char **argv)
    struct sockaddr_in *serv_addr_ecoute=malloc(sizeof(struct sockaddr_in));
    socklen_t addrlen = sizeof(struct sockaddr);
    int *serv_port = malloc(sizeof(int));
-
 
    /* SOCKET de communication avec les autres processus DMS : SET-UP declarations */
    struct sockaddr_in serv_addr_connexion;
@@ -382,7 +372,6 @@ char *dsm_init(int argc, char **argv)
        fflush(stdout);
      }
    }
-
 
 
    /* Allocation des pages en tourniquet */
