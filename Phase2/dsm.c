@@ -321,19 +321,18 @@ static void segv_handler(int sig, siginfo_t *info, void *context)
 /* dans les programmes utilisateurs de la DSM                       */
 char *dsm_init(int argc, char **argv)
 {
+  // Déclarations
    struct sigaction act;
    int index;
    int nb_procs;
 
+   // Mise en place des variables d'environnement
    char *val1=getenv("SOCKET_INITIALISATION");
    int SOCKET_INITIALISATION_GLOBAL=atoi(val1);
    char *val2=getenv("SOCKET_ECOUTE");
    int SOCKET_ECOUTE_GLOBAL=atoi(val2);
 
    /* Lecture du nombre de processus dsm */
-   printf("[DSM init] début lecture\n");
-   fflush(stdout);
-
    int test_read_nbprocs = read(SOCKET_INITIALISATION_GLOBAL, &DSM_NODE_NUM, sizeof(int));
    if (test_read_nbprocs < 0) {
      error("read nbprocs");
@@ -347,15 +346,16 @@ char *dsm_init(int argc, char **argv)
    if (test_read_rank < 0) {
      error("read rank");
    }
-   printf("[DSM init] rank = %d\n", DSM_NODE_ID);
+   printf("[DSM init] Mon rang (DSM_NODE_ID) = %d\n", DSM_NODE_ID);
    fflush(stdout);
 
    /* Lecture des infos (port + IP) nécessaires aux connexions aux tres processus dsm */
-   infos_dsm_t *infos_init[DSM_NODE_NUM];
-   info_dsmwrap_init(infos_init, DSM_NODE_NUM);
+   int test_info_init;
+   infos_dsm_t *infos_init[DSM_NODE_NUM]; // Déclaration du tableau de structure  permettant de sotcker les informations
+   info_dsmwrap_init(infos_init, DSM_NODE_NUM); // Allocation mémoire (malloc)
    for (int i = 0; i < DSM_NODE_NUM; i++) {
-     int test_info_init = read(SOCKET_INITIALISATION_GLOBAL,infos_init[i],sizeof(infos_dsm_t));
-     printf("########### lecture dsm init pour le rank %d\n", infos_init[i]->rank);
+     test_info_init = read(SOCKET_INITIALISATION_GLOBAL,infos_init[i],sizeof(infos_dsm_t));
+     printf("[DSM init] Lecture des informations pour le processus de rang %d\n", infos_init[i]->rank);
      fflush(stdout);
      if (test_info_init < 0)
        error("read info_init_dsminit");
@@ -365,26 +365,30 @@ char *dsm_init(int argc, char **argv)
    /* avec les autres processus : connect/accept */
    /*definition des variables nécessaires au poll*/
 
-   struct sockaddr_in *serv_addr_ecoute=malloc(sizeof(struct sockaddr_in));
-   socklen_t addrlen = sizeof(struct sockaddr);
-
-   /* SOCKET de communication avec les autres processus DMS : SET-UP declarations */
+   // Initialisations
+   struct sockaddr_in *serv_addr_ecoute;
    struct sockaddr_in serv_addr_connexion;
-   int sock[DSM_NODE_NUM];
+   socklen_t addrlen = sizeof(struct sockaddr);
+   int *serv_port;
+   int sock[DSM_NODE_NUM]; // Tableau des fd pour chaque processus
+
+   // Allocations mémoires (malloc)
+   serv_addr_ecoute = malloc(sizeof(struct sockaddr_in));
+   serv_port = malloc(sizeof(int));
+
+   /* Interconnexion entre les processus */
    for (int j = 0; j <DSM_NODE_NUM; j++) {
      sock[j] = -1;
      if (infos_init[j]->rank > DSM_NODE_ID) {
        sock[j] = do_socket();
        init_client_addr(&serv_addr_connexion, infos_init[j]->IP, infos_init[j]->port);
        do_connect(sock[j], serv_addr_connexion);
-       printf(">>>>>>>[dsm] connexion ok : %d\n", sock[j]);
+       printf("[DSM init] Connexion avec le processus %d OK (fd =  %d - connect)\n", infos_init[j]->rank, sock[j]);
        fflush(stdout);
      }
      else if (infos_init[j]->rank != DSM_NODE_ID){
-       printf(">>>>>>>[dsm%d] accept début %d\n",DSM_NODE_ID, infos_init[j]->rank );
-       fflush(stdout);
        sock[j] = do_accept(SOCKET_ECOUTE_GLOBAL, (struct sockaddr*)serv_addr_ecoute, &addrlen);
-       printf(">>>>>>>[dsm] accept fin de  la fin : %d\n", sock[j]);
+       printf("[DSM init] Connexion avec le processus %d OK (fd =  %d - accept) \n", infos_init[j]->rank,sock[j]);
        fflush(stdout);
      }
    }
