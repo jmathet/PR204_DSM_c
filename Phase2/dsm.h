@@ -96,7 +96,7 @@ void proc_infos_init(dsm_proc_distant_t *proc_infos[], int nb_proc);
 
 void proc_infos_clean(dsm_proc_distant_t *proc_infos[], int nb_proc);
 
-void info_dsmwrap_init(infos_dsm_t *infos_init_dsmwrap[], int nb_procs);
+void info_dsminit_init(infos_dsm_t *infos_init_dsmwrap[], int nb_procs);
 
 void info_dsmwrap_clean(infos_dsm_t *infos_init_dsmwrap[], int nb_procs);
 
