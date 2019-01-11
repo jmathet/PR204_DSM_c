@@ -411,11 +411,11 @@ char *dsm_init(int argc, char **argv)
    /* des autres processus */
    pthread_create(&comm_daemon, NULL, dsm_comm_daemon, (void*)&sock);
 
-   /* Adresse de début de la zone de mémoire partagée */
+   // Nettoyage
    free(serv_addr_ecoute);
-   //free(serv_addr_connexion);
    info_dsm_clean(infos_init, DSM_NODE_NUM);
-   return ((char *)BASE_ADDR);
+   
+   return ((char *)BASE_ADDR); /* Adresse de début de la zone de mémoire partagée */
 }
 
 void dsm_finalize(void)
