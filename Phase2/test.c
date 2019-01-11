@@ -6,6 +6,7 @@ int main(int argc, char **argv)
    pointeur =dsm_init(argc,argv);
 
    printf("JE SUIS LE PROGRAMME TEST\n");
+   sleep(1);
 
    dsm_finalize();
    return 1;
