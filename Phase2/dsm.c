@@ -239,7 +239,7 @@ static void *dsm_comm_daemon( void *arg)
 }
 
 
-send_request(int owner,int numpage)
+void send_request(int owner,int numpage)
 {
   char requete[100];
   memset(requete,'\0',46);
