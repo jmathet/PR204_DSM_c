@@ -98,7 +98,7 @@ void proc_infos_clean(dsm_proc_distant_t *proc_infos[], int nb_proc);
 
 void info_dsminit_init(infos_dsm_t *infos_init_dsmwrap[], int nb_procs);
 
-void info_dsmwrap_clean(infos_dsm_t *infos_init_dsmwrap[], int nb_procs);
+void info_dsm_clean(infos_dsm_t *infos_init[], int nb_procs);
 
 int creer_socket_serv(int *serv_port,struct sockaddr_in *serv_addr);
 

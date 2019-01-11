@@ -66,9 +66,7 @@ int main(int argc, char **argv)
 
   /* Libération des ressources */
   free(serv_addr_ecoute);
-//  close(sock_initialisation);
-//  close(sock_ecoute);
-  //info_dsmwrap_clean(info_init, nb_procs);
+
 
   /* on execute la bonne commande */
   char *argsam[2];
@@ -85,9 +83,13 @@ int main(int argc, char **argv)
   sprintf(val2,"SOCKET_INITIALISATION=%d",sock_initialisation);
   putenv(val2);
 
-  
+
   int exec_res =execvpe(argsam[0], argsam ,environ);
   if (exec_res == -1) error("exec dsminit");
 
+  close(sock_initialisation);
+  close(sock_ecoute);
+  free(argsam[0]);
+  free(argsam[1]);
   return 0;
 }
